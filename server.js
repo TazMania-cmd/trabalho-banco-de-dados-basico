@@ -44,7 +44,7 @@ function query(res, sql, params = []) {
 app.get('/api/status', (req, res) => {
   connection.query('SELECT 1 AS conectado', (error, rows) => {
     if (!error) {
-    res.json(rows);
+      res.json(rows);
       return;
     }
 
