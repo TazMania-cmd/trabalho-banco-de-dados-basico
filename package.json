@@ -1,0 +1,15 @@
+{
+  "name": "trabalho-node-mysql-banco-de-dados",
+  "version": "1.0.0",
+  "description": "Backend Node.js com MySQL e front-end usando Fetch API para consultar dados da locadora das aulas de Banco de Dados I.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mysql2": "^3.11.5"
+  }
+}
