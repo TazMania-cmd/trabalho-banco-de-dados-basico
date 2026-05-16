@@ -1,44 +1,62 @@
 const path = require('path');
 const express = require('express');
-const mysql = require('mysql2/promise');
+const mysql = require('mysql2');
 require('dotenv').config();
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 
-const pool = mysql.createPool({
+const connection = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
   port: Number(process.env.DB_PORT) || 3306,
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'AULAS',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  database: process.env.DB_NAME || 'AULAS'
+});
+
+connection.connect((error) => {
+  if (error) {
+    console.error('Erro ao conectar no MySQL:', error.message);
+    return;
+  }
+
+  console.log('Conectado ao MySQL.');
 });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-async function query(res, sql, params = []) {
-  try {
-    const [rows] = await pool.execute(sql, params);
-    res.json(rows);
-  } catch (error) {
+function query(res, sql, params = []) {
+  connection.query(sql, params, (error, rows) => {
+    if (!error) {
+      res.json(rows);
+      return;
+    }
+
     console.error('Erro ao consultar o MySQL:', error);
     res.status(500).json({
       erro: 'Nao foi possivel consultar o banco de dados.',
       detalhe: error.message
     });
-  }
+  });
 }
 
-app.get('/api/status', async (req, res) => {
-  await query(res, 'SELECT 1 AS conectado');
+app.get('/api/status', (req, res) => {
+  connection.query('SELECT 1 AS conectado', (error, rows) => {
+    if (!error) {
+    res.json(rows);
+      return;
+    }
+
+    res.status(500).json({
+      erro: 'Nao foi possivel conectar ao banco de dados.',
+      detalhe: error.message
+    });
+  });
 });
 
-app.get('/api/clientes', async (req, res) => {
-  await query(
+app.get('/api/clientes', (req, res) => {
+  query(
     res,
     `SELECT CLI_ID, CLI_NOME, CLI_TELEFONE, CLI_DATA_CAD, CLI_SALDO
      FROM CLIENTES
@@ -46,8 +64,8 @@ app.get('/api/clientes', async (req, res) => {
   );
 });
 
-app.get('/api/categorias', async (req, res) => {
-  await query(
+app.get('/api/categorias', (req, res) => {
+  query(
     res,
     `SELECT CAT_ID, CAT_NOME, CAT_DATA_CAD
      FROM CATEGORIAS
@@ -55,8 +73,8 @@ app.get('/api/categorias', async (req, res) => {
   );
 });
 
-app.get('/api/filmes', async (req, res) => {
-  await query(
+app.get('/api/filmes', (req, res) => {
+  query(
     res,
     `SELECT FILMES.FIL_ID,
             FILMES.FIL_NOME,
@@ -68,8 +86,8 @@ app.get('/api/filmes', async (req, res) => {
   );
 });
 
-app.get('/api/locacoes', async (req, res) => {
-  await query(
+app.get('/api/locacoes', (req, res) => {
+  query(
     res,
     `SELECT CLIENTES.CLI_ID,
             CLIENTES.CLI_NOME,
@@ -82,8 +100,8 @@ app.get('/api/locacoes', async (req, res) => {
   );
 });
 
-app.get('/api/locacoes/detalhes', async (req, res) => {
-  await query(
+app.get('/api/locacoes/detalhes', (req, res) => {
+  query(
     res,
     `SELECT CLIENTES.CLI_ID,
             CLIENTES.CLI_NOME,
@@ -102,7 +120,7 @@ app.get('/api/locacoes/detalhes', async (req, res) => {
   );
 });
 
-app.get('/api/clientes/:id/locacoes', async (req, res) => {
+app.get('/api/clientes/:id/locacoes', (req, res) => {
   const clienteId = Number(req.params.id);
 
   if (!Number.isInteger(clienteId) || clienteId <= 0) {
@@ -110,7 +128,7 @@ app.get('/api/clientes/:id/locacoes', async (req, res) => {
     return;
   }
 
-  await query(
+  query(
     res,
     `SELECT CLIENTES.CLI_NOME,
             LOCACOES.LOC_ID,
