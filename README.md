@@ -1,6 +1,6 @@
-# Sistema Locadora - Node.js + MySQL
+# Sistema Locadora - Node.js + Supabase PostgreSQL
 
-Projeto para a disciplina de Banco de Dados I com backend Node.js, banco MySQL e interface web para manutencao dos dados de uma locadora.
+Projeto para a disciplina de Banco de Dados I com backend Node.js, banco PostgreSQL hospedado no Supabase e interface web para manutencao dos dados de uma locadora.
 
 ## Caracteristicas atendidas
 
@@ -10,7 +10,7 @@ Projeto para a disciplina de Banco de Dados I com backend Node.js, banco MySQL e
 - Arquivos de imagem devem ficar na pasta `_Imagens`, caso sejam adicionados.
 - O sistema possui menu inicial para acessar a manutencao de cada tabela.
 - Todas as operacoes de banco sao feitas pelo backend, usando JSON entre front-end e servidor.
-- O front-end nao conecta diretamente no MySQL.
+- O front-end nao conecta diretamente no Supabase/PostgreSQL.
 - Cada tela possui uma area superior para Insert, Select, Update e Delete e uma grid inferior com os dados ativos.
 - Existe uma tela de relatorio geral com opcao de impressao.
 
@@ -18,8 +18,9 @@ Projeto para a disciplina de Banco de Dados I com backend Node.js, banco MySQL e
 
 - Node.js
 - Express
-- MySQL
-- mysql2
+- Supabase
+- PostgreSQL
+- pg
 - dotenv
 - HTML, CSS e JavaScript puro
 
@@ -37,32 +38,78 @@ Projeto para a disciplina de Banco de Dados I com backend Node.js, banco MySQL e
 ├── _JavaScript/
 │   └── app.js
 └── _Imagens/
+    └── .gitkeep
 ```
 
-## Como executar
+## Como configurar no Supabase
 
-1. Instale as dependencias:
+1. Crie um projeto no Supabase.
+
+2. Abra o painel do projeto e va em:
+
+```text
+SQL Editor
+```
+
+3. Copie todo o conteudo do arquivo `database.sql`, cole no SQL Editor e execute.
+
+Esse script cria as tabelas:
+
+- `CLIENTES`
+- `CATEGORIAS`
+- `FILMES`
+- `LOCACOES`
+- `ITENS`
+
+E tambem insere dados de exemplo.
+
+## Como conectar o projeto ao Supabase
+
+1. No Supabase, pegue a connection string em:
+
+```text
+Project Settings > Database > Connection string
+```
+
+Use a connection string no modelo PostgreSQL/URI.
+
+2. No projeto local, copie `.env.example` para `.env`:
+
+```bash
+cp .env.example .env
+```
+
+No Windows PowerShell, use:
+
+```powershell
+copy .env.example .env
+```
+
+3. Edite o `.env` e coloque sua URL real do Supabase:
+
+```env
+DATABASE_URL=postgresql://postgres:SUA_SENHA@db.SEU_PROJECT_REF.supabase.co:5432/postgres
+DB_SSL=true
+PORT=3000
+```
+
+Importante: nao envie o arquivo `.env` para o GitHub.
+
+## Como executar depois do git pull
+
+1. Atualize seu projeto:
+
+```bash
+git pull
+```
+
+2. Reinstale as dependencias, porque o projeto trocou `mysql2` por `pg`:
 
 ```bash
 npm install
 ```
 
-2. Crie o banco e os dados de exemplo no MySQL:
-
-```bash
-mysql -u root -p < database.sql
-```
-
-3. Copie `.env.example` para `.env` e ajuste usuario/senha do MySQL:
-
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=sua_senha_aqui
-DB_NAME=AULAS
-PORT=3000
-```
+3. Configure o `.env` com a `DATABASE_URL` do Supabase.
 
 4. Inicie o backend:
 
@@ -132,4 +179,4 @@ http://localhost:3000
 
 ## Observacao
 
-As credenciais do banco ficam apenas no arquivo `.env`. O JavaScript do front-end usa `fetch` para chamar o backend e recebe os dados em JSON.
+As credenciais do banco ficam apenas no arquivo `.env`. O JavaScript do front-end usa `fetch` para chamar o backend e recebe os dados em JSON. Isso mantem a manipulacao dos dados protegida no backend.
