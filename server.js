@@ -1,20 +1,18 @@
 const path = require('path');
 const express = require('express');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'AULAS',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+if (!process.env.DATABASE_URL) {
+  console.warn('Aviso: DATABASE_URL nao foi definida no arquivo .env. Configure a string de conexao do Supabase.');
+}
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false }
 });
 
 app.use(express.json());
@@ -28,10 +26,10 @@ app.get('/', (req, res) => {
 
 async function executarConsulta(res, sql, params = []) {
   try {
-    const [rows] = await pool.execute(sql, params);
-    res.json(rows);
+    const resultado = await pool.query(sql, params);
+    res.json(resultado.rows);
   } catch (error) {
-    console.error('Erro ao consultar o MySQL:', error);
+    console.error('Erro ao consultar o PostgreSQL/Supabase:', error);
     res.status(500).json({
       erro: 'Nao foi possivel consultar o banco de dados.',
       detalhe: error.message
@@ -41,14 +39,16 @@ async function executarConsulta(res, sql, params = []) {
 
 async function executarAcao(res, sql, params = [], mensagem = 'Operacao realizada com sucesso.') {
   try {
-    const [resultado] = await pool.execute(sql, params);
+    const resultado = await pool.query(sql, params);
+    const primeiroRegistro = resultado.rows?.[0] || {};
+
     res.json({
       mensagem,
-      insertId: resultado.insertId,
-      affectedRows: resultado.affectedRows
+      insertId: primeiroRegistro.id || null,
+      affectedRows: resultado.rowCount
     });
   } catch (error) {
-    console.error('Erro ao manipular o MySQL:', error);
+    console.error('Erro ao manipular o PostgreSQL/Supabase:', error);
     res.status(500).json({
       erro: 'Nao foi possivel manipular o banco de dados.',
       detalhe: error.message
@@ -61,6 +61,17 @@ function validarId(req, res) {
 
   if (!Number.isInteger(id) || id <= 0) {
     res.status(400).json({ erro: 'Informe um codigo valido.' });
+    return null;
+  }
+
+  return id;
+}
+
+function validarCampoId(valor, nomeCampo, res) {
+  const id = Number(valor);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(400).json({ erro: `Informe um codigo de ${nomeCampo} valido.` });
     return null;
   }
 
@@ -115,7 +126,8 @@ app.post('/api/clientes', async (req, res) => {
   await executarAcao(
     res,
     `INSERT INTO CLIENTES (CLI_NOME, CLI_TELEFONE, CLI_DATA_CAD, CLI_SALDO)
-     VALUES (?, ?, NOW(), ?)`,
+     VALUES ($1, $2, NOW(), $3)
+     RETURNING CLI_ID AS id`,
     [nome, telefone, saldo],
     'Cliente cadastrado com sucesso.'
   );
@@ -135,8 +147,8 @@ app.put('/api/clientes/:id', async (req, res) => {
   await executarAcao(
     res,
     `UPDATE CLIENTES
-     SET CLI_NOME = ?, CLI_TELEFONE = ?, CLI_SALDO = ?
-     WHERE CLI_ID = ?`,
+     SET CLI_NOME = $1, CLI_TELEFONE = $2, CLI_SALDO = $3
+     WHERE CLI_ID = $4`,
     [nome, telefone, saldo, id],
     'Cliente atualizado com sucesso.'
   );
@@ -146,7 +158,7 @@ app.delete('/api/clientes/:id', async (req, res) => {
   const id = validarId(req, res);
   if (!id) return;
 
-  await executarAcao(res, 'DELETE FROM CLIENTES WHERE CLI_ID = ?', [id], 'Cliente excluido com sucesso.');
+  await executarAcao(res, 'DELETE FROM CLIENTES WHERE CLI_ID = $1', [id], 'Cliente excluido com sucesso.');
 });
 
 // CATEGORIAS
@@ -166,7 +178,8 @@ app.post('/api/categorias', async (req, res) => {
   await executarAcao(
     res,
     `INSERT INTO CATEGORIAS (CAT_NOME, CAT_DATA_CAD)
-     VALUES (?, NOW())`,
+     VALUES ($1, NOW())
+     RETURNING CAT_ID AS id`,
     [nome],
     'Categoria cadastrada com sucesso.'
   );
@@ -181,7 +194,7 @@ app.put('/api/categorias/:id', async (req, res) => {
 
   await executarAcao(
     res,
-    'UPDATE CATEGORIAS SET CAT_NOME = ? WHERE CAT_ID = ?',
+    'UPDATE CATEGORIAS SET CAT_NOME = $1 WHERE CAT_ID = $2',
     [nome, id],
     'Categoria atualizada com sucesso.'
   );
@@ -191,7 +204,7 @@ app.delete('/api/categorias/:id', async (req, res) => {
   const id = validarId(req, res);
   if (!id) return;
 
-  await executarAcao(res, 'DELETE FROM CATEGORIAS WHERE CAT_ID = ?', [id], 'Categoria excluida com sucesso.');
+  await executarAcao(res, 'DELETE FROM CATEGORIAS WHERE CAT_ID = $1', [id], 'Categoria excluida com sucesso.');
 });
 
 // FILMES
@@ -219,7 +232,8 @@ app.post('/api/filmes', async (req, res) => {
   await executarAcao(
     res,
     `INSERT INTO FILMES (FIL_NOME, FIL_CAT_ID, FIL_DATA_CAD)
-     VALUES (?, ?, NOW())`,
+     VALUES ($1, $2, NOW())
+     RETURNING FIL_ID AS id`,
     [nome, categoriaId],
     'Filme cadastrado com sucesso.'
   );
@@ -237,7 +251,7 @@ app.put('/api/filmes/:id', async (req, res) => {
 
   await executarAcao(
     res,
-    'UPDATE FILMES SET FIL_NOME = ?, FIL_CAT_ID = ? WHERE FIL_ID = ?',
+    'UPDATE FILMES SET FIL_NOME = $1, FIL_CAT_ID = $2 WHERE FIL_ID = $3',
     [nome, categoriaId, id],
     'Filme atualizado com sucesso.'
   );
@@ -247,7 +261,7 @@ app.delete('/api/filmes/:id', async (req, res) => {
   const id = validarId(req, res);
   if (!id) return;
 
-  await executarAcao(res, 'DELETE FROM FILMES WHERE FIL_ID = ?', [id], 'Filme excluido com sucesso.');
+  await executarAcao(res, 'DELETE FROM FILMES WHERE FIL_ID = $1', [id], 'Filme excluido com sucesso.');
 });
 
 // LOCACOES
@@ -271,7 +285,8 @@ app.post('/api/locacoes', async (req, res) => {
   await executarAcao(
     res,
     `INSERT INTO LOCACOES (LOC_CLI_ID, LOC_DATA_CAD)
-     VALUES (?, NOW())`,
+     VALUES ($1, NOW())
+     RETURNING LOC_ID AS id`,
     [clienteId],
     'Locacao cadastrada com sucesso.'
   );
@@ -286,7 +301,7 @@ app.put('/api/locacoes/:id', async (req, res) => {
 
   await executarAcao(
     res,
-    'UPDATE LOCACOES SET LOC_CLI_ID = ? WHERE LOC_ID = ?',
+    'UPDATE LOCACOES SET LOC_CLI_ID = $1 WHERE LOC_ID = $2',
     [clienteId, id],
     'Locacao atualizada com sucesso.'
   );
@@ -296,7 +311,7 @@ app.delete('/api/locacoes/:id', async (req, res) => {
   const id = validarId(req, res);
   if (!id) return;
 
-  await executarAcao(res, 'DELETE FROM LOCACOES WHERE LOC_ID = ?', [id], 'Locacao excluida com sucesso.');
+  await executarAcao(res, 'DELETE FROM LOCACOES WHERE LOC_ID = $1', [id], 'Locacao excluida com sucesso.');
 });
 
 // ITENS
@@ -331,7 +346,8 @@ app.post('/api/itens', async (req, res) => {
   await executarAcao(
     res,
     `INSERT INTO ITENS (ITN_LOC_ID, ITN_FIL_ID, ITN_VALOR_LOC)
-     VALUES (?, ?, ?)`,
+     VALUES ($1, $2, $3)
+     RETURNING ITN_ID AS id`,
     [locacaoId, filmeId, valor],
     'Item cadastrado com sucesso.'
   );
@@ -353,8 +369,8 @@ app.put('/api/itens/:id', async (req, res) => {
   await executarAcao(
     res,
     `UPDATE ITENS
-     SET ITN_LOC_ID = ?, ITN_FIL_ID = ?, ITN_VALOR_LOC = ?
-     WHERE ITN_ID = ?`,
+     SET ITN_LOC_ID = $1, ITN_FIL_ID = $2, ITN_VALOR_LOC = $3
+     WHERE ITN_ID = $4`,
     [locacaoId, filmeId, valor, id],
     'Item atualizado com sucesso.'
   );
@@ -364,7 +380,7 @@ app.delete('/api/itens/:id', async (req, res) => {
   const id = validarId(req, res);
   if (!id) return;
 
-  await executarAcao(res, 'DELETE FROM ITENS WHERE ITN_ID = ?', [id], 'Item excluido com sucesso.');
+  await executarAcao(res, 'DELETE FROM ITENS WHERE ITN_ID = $1', [id], 'Item excluido com sucesso.');
 });
 
 // CONSULTAS E RELATORIOS
@@ -405,22 +421,11 @@ app.get('/api/clientes/:id/locacoes', async (req, res) => {
      INNER JOIN ITENS ON ITENS.ITN_LOC_ID = LOCACOES.LOC_ID
      INNER JOIN FILMES ON ITENS.ITN_FIL_ID = FILMES.FIL_ID
      INNER JOIN CATEGORIAS ON CATEGORIAS.CAT_ID = FILMES.FIL_CAT_ID
-     WHERE CLIENTES.CLI_ID = ?
+     WHERE CLIENTES.CLI_ID = $1
      ORDER BY LOCACOES.LOC_ID ASC, FILMES.FIL_NOME ASC`,
     [clienteId]
   );
 });
-
-function validarCampoId(valor, nomeCampo, res) {
-  const id = Number(valor);
-
-  if (!Number.isInteger(id) || id <= 0) {
-    res.status(400).json({ erro: `Informe um codigo de ${nomeCampo} valido.` });
-    return null;
-  }
-
-  return id;
-}
 
 app.listen(port, () => {
   console.log(`Servidor iniciado em http://localhost:${port}`);
