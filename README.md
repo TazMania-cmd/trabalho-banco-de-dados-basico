@@ -2,57 +2,41 @@
 
 Projeto para a disciplina de Banco de Dados I com backend Node.js, Supabase e interface web para manutencao dos dados de uma locadora.
 
-## Caracteristicas atendidas
+## O que o projeto usa
 
-- `index.html` fica na pasta principal do projeto.
-- Arquivos JavaScript ficam na pasta `_JavaScript`.
-- Arquivos CSS ficam na pasta `_CSS`.
-- Arquivos de imagem devem ficar na pasta `_Imagens`, caso sejam adicionados.
-- O sistema possui menu inicial para acessar a manutencao de cada tabela.
-- Todas as operacoes de banco sao feitas pelo backend, usando JSON entre front-end e servidor.
-- O front-end nao conecta diretamente no banco.
-- Cada tela possui uma area superior para Insert, Select, Update e Delete e uma grid inferior com os dados ativos.
-- Existe uma tela de relatorio geral com opcao de impressao.
+- Node.js com Express
+- Node.js 20 ou superior
+- Supabase como banco de dados PostgreSQL
+- `@supabase/supabase-js` no backend
+- Front-end em HTML, CSS e JavaScript puro
+- Comunicacao do front-end com o backend usando `fetch` e JSON
 
-## Tecnologias
-
-- Node.js
-- Express
-- Supabase
-- @supabase/supabase-js
-- dotenv
-- HTML, CSS e JavaScript puro
+O front-end nao acessa o Supabase diretamente. Todas as operacoes de Insert, Select, Update e Delete passam pelas rotas `/api` do backend.
 
 ## Estrutura
 
 ```text
 .
-├── index.html
-├── server.js
-├── database.sql
-├── package.json
-├── .env.example
-├── _CSS/
-│   └── styles.css
-├── _JavaScript/
-│   └── app.js
-└── _Imagens/
-    └── .gitkeep
+|-- index.html
+|-- server.js
+|-- database.sql
+|-- package.json
+|-- .env.example
+|-- _CSS/
+|   `-- styles.css
+|-- _JavaScript/
+|   `-- app.js
+`-- _Imagens/
 ```
 
-## Como configurar no Supabase
+## Configurar o banco no Supabase
 
 1. Crie um projeto no Supabase.
+2. Abra o `SQL Editor`.
+3. Copie todo o conteudo de `database.sql`.
+4. Cole no editor SQL e execute.
 
-2. Abra o painel do projeto e va em:
-
-```text
-SQL Editor
-```
-
-3. Copie todo o conteudo do arquivo `database.sql`, cole no SQL Editor e execute.
-
-Esse script cria as tabelas:
+O script cria as tabelas:
 
 - `clientes`
 - `categorias`
@@ -60,120 +44,74 @@ Esse script cria as tabelas:
 - `locacoes`
 - `itens`
 
-E tambem insere dados de exemplo.
+Ele tambem cadastra dados iniciais e cria policies de RLS para permitir o CRUD usando a chave anon/publishable.
 
-## Como conectar o projeto ao Supabase
+## Configurar o backend
 
-1. No Supabase, pegue as chaves em:
-
-```text
-Project Settings > API
-```
-
-2. No projeto local, copie `.env.example` para `.env.local`:
-
-```bash
-cp .env.example .env.local
-```
-
-No Windows PowerShell, use:
+Copie o arquivo de exemplo:
 
 ```powershell
 copy .env.example .env.local
 ```
 
-3. Edite o `.env.local` e coloque seus dados reais do Supabase:
+Preencha o `.env.local` com os dados do seu projeto Supabase:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=COLE_AQUI_A_URL_DO_SUPABASE
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=COLE_AQUI_A_CHAVE_PUBLICA_DO_SUPABASE
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_ANON_KEY=sua-chave-anon-ou-publishable
 PORT=3000
 ```
 
-Importante: nao envie o arquivo `.env.local` para o GitHub.
+Opcionalmente, como a conexao fica no backend, voce tambem pode usar a service role key:
 
-## Como executar depois do git pull
-
-1. Atualize seu projeto:
-
-```bash
-git pull
+```env
+SUPABASE_SERVICE_ROLE_KEY=sua-chave-service-role
 ```
 
-2. Reinstale as dependencias:
+Nao envie `.env.local` para o GitHub.
+
+## Executar
+
+Instale as dependencias:
 
 ```bash
 npm install
 ```
 
-3. Configure o `.env.local` com a URL e a chave publica do Supabase.
-
-4. Inicie o backend:
+Inicie o servidor:
 
 ```bash
 npm start
 ```
 
-5. Acesse no navegador:
+Acesse:
 
 ```text
 http://localhost:3000
 ```
 
-## Tabelas contempladas
-
-- Clientes
-- Categorias
-- Filmes
-- Locacoes
-- Itens da locacao
-
 ## Rotas principais
 
-### Status
-
 - `GET /api/status`
-
-### Clientes
-
 - `GET /api/clientes`
 - `POST /api/clientes`
 - `PUT /api/clientes/:id`
 - `DELETE /api/clientes/:id`
-
-### Categorias
-
 - `GET /api/categorias`
 - `POST /api/categorias`
 - `PUT /api/categorias/:id`
 - `DELETE /api/categorias/:id`
-
-### Filmes
-
 - `GET /api/filmes`
 - `POST /api/filmes`
 - `PUT /api/filmes/:id`
 - `DELETE /api/filmes/:id`
-
-### Locacoes
-
 - `GET /api/locacoes`
 - `POST /api/locacoes`
 - `PUT /api/locacoes/:id`
 - `DELETE /api/locacoes/:id`
-
-### Itens
-
 - `GET /api/itens`
 - `POST /api/itens`
 - `PUT /api/itens/:id`
 - `DELETE /api/itens/:id`
-
-### Relatorios
-
 - `GET /api/locacoes/detalhes`
 - `GET /api/clientes/:id/locacoes`
-
-## Observacao
-
-As credenciais ficam apenas no arquivo `.env.local`. O JavaScript do front-end usa `fetch` para chamar o backend e recebe os dados em JSON. Isso mantem a manipulacao dos dados centralizada no backend.

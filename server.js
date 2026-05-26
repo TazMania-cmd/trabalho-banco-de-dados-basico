@@ -8,21 +8,41 @@ require('dotenv').config();
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  || process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  || process.env.SUPABASE_ANON_KEY
+  || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.warn('Aviso: configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY no arquivo .env.local.');
+  console.warn('Aviso: configure SUPABASE_URL e SUPABASE_ANON_KEY no arquivo .env.local.');
 }
 
-const supabase = createClient(supabaseUrl || '', supabaseKey || '');
+const supabase = supabaseUrl && supabaseKey
+  ? createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  })
+  : null;
 
 app.use(express.json());
 app.use('/_CSS', express.static(path.join(__dirname, '_CSS')));
 app.use('/_JavaScript', express.static(path.join(__dirname, '_JavaScript')));
 app.use('/_Imagens', express.static(path.join(__dirname, '_Imagens')));
+
+app.use('/api', (req, res, next) => {
+  if (!supabase) {
+    res.status(500).json({
+      erro: 'Supabase nao configurado.',
+      detalhe: 'Configure SUPABASE_URL e SUPABASE_ANON_KEY no arquivo .env.local.'
+    });
+    return;
+  }
+
+  next();
+});
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));

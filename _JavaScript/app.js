@@ -367,10 +367,10 @@ async function excluirRegistro() {
 async function verificarConexao() {
   try {
     await fetchJson('/api/status');
-    statusConexao.textContent = 'Backend e MySQL conectados';
+    statusConexao.textContent = 'Backend e Supabase conectados';
     statusConexao.className = 'status ok';
   } catch {
-    statusConexao.textContent = 'Falha na conexao com o backend/MySQL';
+    statusConexao.textContent = 'Falha na conexao com o backend/Supabase';
     statusConexao.className = 'status erro';
   }
 }
