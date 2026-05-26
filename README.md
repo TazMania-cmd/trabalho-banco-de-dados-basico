@@ -1,6 +1,6 @@
-# Sistema Locadora - Node.js + Supabase PostgreSQL
+# Sistema Locadora - Node.js + Supabase
 
-Projeto para a disciplina de Banco de Dados I com backend Node.js, banco PostgreSQL hospedado no Supabase e interface web para manutencao dos dados de uma locadora.
+Projeto para a disciplina de Banco de Dados I com backend Node.js, Supabase e interface web para manutencao dos dados de uma locadora.
 
 ## Caracteristicas atendidas
 
@@ -10,7 +10,7 @@ Projeto para a disciplina de Banco de Dados I com backend Node.js, banco Postgre
 - Arquivos de imagem devem ficar na pasta `_Imagens`, caso sejam adicionados.
 - O sistema possui menu inicial para acessar a manutencao de cada tabela.
 - Todas as operacoes de banco sao feitas pelo backend, usando JSON entre front-end e servidor.
-- O front-end nao conecta diretamente no Supabase/PostgreSQL.
+- O front-end nao conecta diretamente no banco.
 - Cada tela possui uma area superior para Insert, Select, Update e Delete e uma grid inferior com os dados ativos.
 - Existe uma tela de relatorio geral com opcao de impressao.
 
@@ -19,8 +19,7 @@ Projeto para a disciplina de Banco de Dados I com backend Node.js, banco Postgre
 - Node.js
 - Express
 - Supabase
-- PostgreSQL
-- pg
+- @supabase/supabase-js
 - dotenv
 - HTML, CSS e JavaScript puro
 
@@ -55,45 +54,43 @@ SQL Editor
 
 Esse script cria as tabelas:
 
-- `CLIENTES`
-- `CATEGORIAS`
-- `FILMES`
-- `LOCACOES`
-- `ITENS`
+- `clientes`
+- `categorias`
+- `filmes`
+- `locacoes`
+- `itens`
 
 E tambem insere dados de exemplo.
 
 ## Como conectar o projeto ao Supabase
 
-1. No Supabase, pegue a connection string em:
+1. No Supabase, pegue as chaves em:
 
 ```text
-Project Settings > Database > Connection string
+Project Settings > API
 ```
 
-Use a connection string no modelo PostgreSQL/URI.
-
-2. No projeto local, copie `.env.example` para `.env`:
+2. No projeto local, copie `.env.example` para `.env.local`:
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
 
 No Windows PowerShell, use:
 
 ```powershell
-copy .env.example .env
+copy .env.example .env.local
 ```
 
-3. Edite o `.env` e coloque sua URL real do Supabase:
+3. Edite o `.env.local` e coloque seus dados reais do Supabase:
 
 ```env
-DATABASE_URL=postgresql://postgres:SUA_SENHA@db.SEU_PROJECT_REF.supabase.co:5432/postgres
-DB_SSL=true
+NEXT_PUBLIC_SUPABASE_URL=COLE_AQUI_A_URL_DO_SUPABASE
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=COLE_AQUI_A_CHAVE_PUBLICA_DO_SUPABASE
 PORT=3000
 ```
 
-Importante: nao envie o arquivo `.env` para o GitHub.
+Importante: nao envie o arquivo `.env.local` para o GitHub.
 
 ## Como executar depois do git pull
 
@@ -103,13 +100,13 @@ Importante: nao envie o arquivo `.env` para o GitHub.
 git pull
 ```
 
-2. Reinstale as dependencias, porque o projeto trocou `mysql2` por `pg`:
+2. Reinstale as dependencias:
 
 ```bash
 npm install
 ```
 
-3. Configure o `.env` com a `DATABASE_URL` do Supabase.
+3. Configure o `.env.local` com a URL e a chave publica do Supabase.
 
 4. Inicie o backend:
 
@@ -179,4 +176,4 @@ http://localhost:3000
 
 ## Observacao
 
-As credenciais do banco ficam apenas no arquivo `.env`. O JavaScript do front-end usa `fetch` para chamar o backend e recebe os dados em JSON. Isso mantem a manipulacao dos dados protegida no backend.
+As credenciais ficam apenas no arquivo `.env.local`. O JavaScript do front-end usa `fetch` para chamar o backend e recebe os dados em JSON. Isso mantem a manipulacao dos dados centralizada no backend.
