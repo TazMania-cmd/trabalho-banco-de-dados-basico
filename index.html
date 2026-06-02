@@ -6,59 +6,25 @@
   <title>Sistema Locadora</title>
   <link rel="stylesheet" href="_CSS/styles.css">
 </head>
-<body>
+<body class="home-page">
   <header class="topbar">
     <div>
       <span class="eyebrow">Banco de Dados I</span>
       <h1>Sistema Locadora</h1>
-      <p>Manutencao completa dos cadastros com Insert, Select, Update e Delete via backend.</p>
+      <p>Menu principal para manutencao das tabelas do banco de dados.</p>
     </div>
     <div id="status" class="status">Verificando conexao...</div>
   </header>
 
-  <main class="app-shell">
-    <aside class="sidebar" aria-label="Menu principal">
-      <strong>Menu</strong>
-      <button class="menu-item active" data-entidade="clientes">Clientes</button>
-      <button class="menu-item" data-entidade="categorias">Categorias</button>
-      <button class="menu-item" data-entidade="filmes">Filmes</button>
-      <button class="menu-item" data-entidade="locacoes">Locacoes</button>
-      <button class="menu-item" data-entidade="itens">Itens da locacao</button>
-      <button class="menu-item" data-entidade="relatorio">Relatorio geral</button>
-    </aside>
-
-    <section class="content-card">
-      <div class="section-header">
-        <div>
-          <span id="subtitulo" class="eyebrow">Formulario de manutencao</span>
-          <h2 id="titulo-entidade">Clientes</h2>
-        </div>
-        <button id="btn-imprimir" class="ghost-button" type="button">Imprimir relatorio</button>
-      </div>
-
-      <section id="form-area" class="form-panel" aria-label="Manipulacao de dados">
-        <form id="form-crud" class="crud-form"></form>
-        <div class="actions-row">
-          <button id="btn-salvar" type="submit" form="form-crud">Salvar</button>
-          <button id="btn-limpar" class="secondary-button" type="button">Limpar</button>
-          <button id="btn-excluir" class="danger-button" type="button" disabled>Excluir selecionado</button>
-        </div>
-        <p id="feedback" class="feedback"></p>
-      </section>
-
-      <section class="grid-panel" aria-label="Grid de dados ativos">
-        <div class="grid-toolbar">
-          <div>
-            <h3>Dados ativos</h3>
-            <span id="contador">0 registros</span>
-          </div>
-          <input id="busca" type="search" placeholder="Filtrar na tabela...">
-        </div>
-        <div class="table-wrap">
-          <table id="tabela"></table>
-        </div>
-      </section>
-    </section>
+  <main class="home-menu" aria-label="Menu principal">
+    <a href="clientes.html">Clientes</a>
+    <a href="categorias.html">Categorias</a>
+    <a href="filmes.html">Filmes</a>
+    <a href="exemplares.html">Exemplares</a>
+    <a href="locacoes.html">Locacoes</a>
+    <a href="itens.html">Itens da locacao</a>
+    <a href="pagamentos.html">Pagamentos</a>
+    <a href="relatorios.html">Relatorios</a>
   </main>
 
   <script src="_JavaScript/app.js"></script>

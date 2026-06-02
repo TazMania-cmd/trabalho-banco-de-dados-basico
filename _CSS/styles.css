@@ -38,7 +38,7 @@ select {
 button {
   min-height: 42px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 0 16px;
   color: #ffffff;
   background: var(--primary);
@@ -56,6 +56,33 @@ button:hover:not(:disabled) {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.home-menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 0 clamp(18px, 5vw, 56px) 48px;
+}
+
+.home-menu a {
+  display: flex;
+  align-items: center;
+  min-height: 86px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 18px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.home-menu a:hover {
+  color: #ffffff;
+  background: var(--primary);
 }
 
 .topbar {
@@ -99,7 +126,7 @@ h1 {
   min-width: 230px;
   padding: 12px 16px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 8px;
   color: var(--muted);
   background: rgba(255, 255, 255, 0.75);
   text-align: center;
@@ -144,7 +171,7 @@ h1 {
   gap: 10px;
   height: fit-content;
   padding: 18px;
-  border-radius: 24px;
+  border-radius: 8px;
 }
 
 .sidebar strong {
@@ -155,24 +182,34 @@ h1 {
   letter-spacing: 0.08em;
 }
 
-.menu-item {
+.menu-item,
+.sidebar a {
+  display: flex;
+  align-items: center;
   justify-content: flex-start;
   width: 100%;
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 0 14px;
   color: var(--text);
   background: transparent;
+  font-weight: 700;
+  text-decoration: none;
   text-align: left;
   box-shadow: none;
 }
 
 .menu-item:hover,
-.menu-item.active {
+.menu-item.active,
+.sidebar a:hover,
+.sidebar a.active {
   color: #ffffff;
   background: var(--primary);
 }
 
 .content-card {
   min-width: 0;
-  border-radius: 28px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -214,7 +251,7 @@ h1 {
 .form-panel {
   margin: 24px 28px;
   padding: 22px;
-  border-radius: 22px;
+  border-radius: 8px;
   box-shadow: none;
 }
 
@@ -239,7 +276,7 @@ select {
   width: 100%;
   min-height: 44px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 10px 12px;
   color: var(--text);
   background: #ffffff;
@@ -280,9 +317,28 @@ select:focus {
 
 .grid-panel {
   margin: 24px 28px 28px;
-  border-radius: 22px;
+  border-radius: 8px;
   overflow: hidden;
   box-shadow: none;
+}
+
+.report-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 18px 28px 0;
+}
+
+.report-tabs button {
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: #ffffff;
+}
+
+.report-tabs button.active,
+.report-tabs button:hover {
+  color: #ffffff;
+  background: var(--primary);
 }
 
 .grid-toolbar {
@@ -342,9 +398,21 @@ tbody tr:hover {
 
 .table-button {
   min-height: 34px;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 0 12px;
   font-size: 13px;
+}
+
+td .table-button + .table-button {
+  margin-left: 8px;
+}
+
+.success-button {
+  background: var(--success);
+}
+
+.success-button:hover:not(:disabled) {
+  background: #0f5f3a;
 }
 
 @media print {

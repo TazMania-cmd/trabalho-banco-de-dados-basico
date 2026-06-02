@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Categorias - Sistema Locadora</title>
+  <link rel="stylesheet" href="_CSS/styles.css">
+</head>
+<body data-entidade="categorias">
+  <header class="topbar"><div><span class="eyebrow">Manutencao</span><h1>Categorias</h1><p>Cadastro, consulta, edicao e exclusao de categorias.</p></div><div id="status" class="status">Verificando conexao...</div></header>
+  <main class="app-shell"><aside class="sidebar"><a href="index.html">Menu principal</a><a href="clientes.html">Clientes</a><a class="active" href="categorias.html">Categorias</a><a href="filmes.html">Filmes</a><a href="exemplares.html">Exemplares</a><a href="locacoes.html">Locacoes</a><a href="itens.html">Itens da locacao</a><a href="pagamentos.html">Pagamentos</a><a href="relatorios.html">Relatorios</a></aside><section class="content-card"><div class="section-header"><div><span id="subtitulo" class="eyebrow">Formulario de manutencao</span><h2 id="titulo-entidade">Categorias</h2></div><button id="btn-imprimir" class="ghost-button" type="button">Imprimir relatorio</button></div><section id="form-area" class="form-panel"><form id="form-crud" class="crud-form"></form><div class="actions-row"><button type="submit" form="form-crud">Salvar</button><button id="btn-limpar" class="secondary-button" type="button">Limpar</button><button id="btn-excluir" class="danger-button" type="button" disabled>Excluir selecionado</button></div><p id="feedback" class="feedback"></p></section><section class="grid-panel"><div class="grid-toolbar"><div><h3>Registros ativos</h3><span id="contador">0 registros</span></div><input id="busca" type="search" placeholder="Filtrar na tabela..."></div><div class="table-wrap"><table id="tabela"></table></div></section></section></main>
+  <script src="_JavaScript/app.js"></script>
+</body>
+</html>

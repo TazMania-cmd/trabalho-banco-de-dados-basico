@@ -1,17 +1,16 @@
 # Sistema Locadora - Node.js + Supabase
 
-Projeto para a disciplina de Banco de Dados I com backend Node.js, Supabase e interface web para manutencao dos dados de uma locadora.
+Projeto academico para a disciplina de Banco de Dados I. O sistema representa uma locadora de filmes com cadastro de clientes, filmes, categorias, exemplares, locacoes, devolucoes, multas por atraso e pagamentos.
 
-## O que o projeto usa
+## Stack
 
-- Node.js com Express
 - Node.js 20 ou superior
-- Supabase como banco de dados PostgreSQL
+- Express
+- Supabase como banco PostgreSQL
 - `@supabase/supabase-js` no backend
 - Front-end em HTML, CSS e JavaScript puro
-- Comunicacao do front-end com o backend usando `fetch` e JSON
 
-O front-end nao acessa o Supabase diretamente. Todas as operacoes de Insert, Select, Update e Delete passam pelas rotas `/api` do backend.
+O front-end nao acessa o Supabase diretamente. Todas as operacoes passam pelas rotas `/api` do backend.
 
 ## Estrutura
 
@@ -29,22 +28,41 @@ O front-end nao acessa o Supabase diretamente. Todas as operacoes de Insert, Sel
 `-- _Imagens/
 ```
 
-## Configurar o banco no Supabase
+O projeto nao usa models/controllers separados. Para manter o escopo academico simples, o `server.js` concentra rotas, validacoes e regras de negocio.
 
-1. Crie um projeto no Supabase.
+## Configurar o banco
+
+1. Crie ou abra um projeto no Supabase.
 2. Abra o `SQL Editor`.
 3. Copie todo o conteudo de `database.sql`.
 4. Cole no editor SQL e execute.
 
-O script cria as tabelas:
+O script recria o banco do projeto, cria constraints, indices, views e dados de exemplo.
 
-- `clientes`
-- `categorias`
-- `filmes`
-- `locacoes`
-- `itens`
+## Tabelas
 
-Ele tambem cadastra dados iniciais e cria policies de RLS para permitir o CRUD usando a chave anon/publishable.
+- `clientes`: dados cadastrais, documento, contato, saldo e status ativo.
+- `categorias`: generos dos filmes.
+- `filmes`: titulo, categoria, ano, classificacao, duracao e valor padrao.
+- `exemplares`: copias fisicas ou digitais de cada filme, com status de disponibilidade.
+- `locacoes`: cabecalho da locacao, cliente, datas, status, totais, multa e pagamentos.
+- `itens`: filmes/exemplares alugados em uma locacao.
+- `pagamentos`: registros de pagamento vinculados a uma locacao.
+
+## Regras de negocio implementadas
+
+- Uma locacao deve ter cliente e data prevista de devolucao.
+- Um item de locacao so pode usar exemplar com status `DISPONIVEL`.
+- Ao inserir item, o exemplar passa para `ALUGADO`.
+- Locacoes devolvidas ou canceladas nao podem receber novos itens.
+- Ao devolver uma locacao, todos os itens alugados sao marcados como `DEVOLVIDO`.
+- Ao devolver, os exemplares voltam para `DISPONIVEL`.
+- A devolucao duplicada e bloqueada.
+- Multa de atraso e calculada por dia de atraso e por item.
+- Pagamentos atualizam automaticamente o total pago da locacao.
+- Os totais da locacao sao recalculados a partir de itens e pagamentos.
+- Nao e permitido excluir exemplar alugado.
+- Nao e permitido excluir locacao com itens.
 
 ## Configurar o backend
 
@@ -54,15 +72,16 @@ Copie o arquivo de exemplo:
 copy .env.example .env.local
 ```
 
-Preencha o `.env.local` com os dados do seu projeto Supabase:
+Preencha o `.env.local`:
 
 ```env
 SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_ANON_KEY=sua-chave-anon-ou-publishable
 PORT=3000
+VALOR_MULTA_DIA=2
 ```
 
-Opcionalmente, como a conexao fica no backend, voce tambem pode usar a service role key:
+Tambem e possivel usar:
 
 ```env
 SUPABASE_SERVICE_ROLE_KEY=sua-chave-service-role
@@ -78,10 +97,16 @@ Instale as dependencias:
 npm install
 ```
 
-Inicie o servidor:
+Inicie em modo desenvolvimento:
 
 ```bash
-npm start
+npm run dev
+```
+
+No PowerShell do Windows, se `npm.ps1` for bloqueado pela politica de execucao, use:
+
+```powershell
+npm.cmd run dev
 ```
 
 Acesse:
@@ -89,6 +114,24 @@ Acesse:
 ```text
 http://localhost:3000
 ```
+
+## Funcionalidades da tela
+
+- Cadastro de clientes
+- Cadastro de categorias
+- Cadastro de filmes
+- Cadastro de exemplares
+- Abertura de locacoes
+- Inclusao de itens na locacao
+- Registro de devolucao
+- Registro de pagamentos
+- Consulta de filmes disponiveis
+- Consulta de filmes alugados
+- Relatorio de locacoes abertas
+- Relatorio de atrasos
+- Relatorio de multas
+- Relatorio geral de locacoes
+- Busca textual nas tabelas exibidas
 
 ## Rotas principais
 
@@ -105,13 +148,37 @@ http://localhost:3000
 - `POST /api/filmes`
 - `PUT /api/filmes/:id`
 - `DELETE /api/filmes/:id`
+- `GET /api/exemplares`
+- `POST /api/exemplares`
+- `PUT /api/exemplares/:id`
+- `DELETE /api/exemplares/:id`
 - `GET /api/locacoes`
 - `POST /api/locacoes`
 - `PUT /api/locacoes/:id`
 - `DELETE /api/locacoes/:id`
+- `POST /api/locacoes/:id/devolver`
 - `GET /api/itens`
 - `POST /api/itens`
 - `PUT /api/itens/:id`
 - `DELETE /api/itens/:id`
-- `GET /api/locacoes/detalhes`
+- `GET /api/pagamentos`
+- `POST /api/pagamentos`
+- `DELETE /api/pagamentos/:id`
+- `GET /api/filmes/disponiveis`
+- `GET /api/filmes/alugados`
 - `GET /api/clientes/:id/locacoes`
+- `GET /api/locacoes/detalhes`
+- `GET /api/relatorios/locacoes-abertas`
+- `GET /api/relatorios/atrasos`
+- `GET /api/relatorios/multas`
+
+## Dados de exemplo
+
+O `database.sql` cria clientes, categorias, filmes, exemplares fisicos e digitais, locacoes abertas, locacoes devolvidas, pagamentos parciais e totais, atrasos e multas.
+
+## Observacoes de seguranca
+
+- O backend valida campos obrigatorios antes de gravar.
+- O acesso ao banco usa a biblioteca oficial do Supabase, sem concatenacao manual de SQL.
+- O SQL cria chaves primarias, estrangeiras, checks, uniques e indices.
+- As policies de RLS foram liberadas para CRUD porque o objetivo e academico e o front depende da chave anon/publishable. Em um sistema real, essas policies devem ser restritas por usuario autenticado.

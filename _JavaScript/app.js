@@ -1,13 +1,42 @@
 const estado = {
-  entidadeAtual: 'clientes',
+  entidadeAtual: document.body.dataset.entidade || null,
   registroSelecionado: null,
   dados: [],
   cache: {
     clientes: [],
     categorias: [],
     filmes: [],
+    exemplares: [],
     locacoes: []
   }
+};
+
+const opcoes = {
+  simNao: [
+    { valor: 'SIM', texto: 'SIM' },
+    { valor: 'NAO', texto: 'NAO' }
+  ],
+  tipoExemplar: [
+    { valor: 'FISICO', texto: 'FISICO' },
+    { valor: 'DIGITAL', texto: 'DIGITAL' }
+  ],
+  statusExemplar: [
+    { valor: 'DISPONIVEL', texto: 'DISPONIVEL' },
+    { valor: 'ALUGADO', texto: 'ALUGADO' },
+    { valor: 'MANUTENCAO', texto: 'MANUTENCAO' },
+    { valor: 'INATIVO', texto: 'INATIVO' }
+  ],
+  formaPagamento: [
+    { valor: 'DINHEIRO', texto: 'DINHEIRO' },
+    { valor: 'PIX', texto: 'PIX' },
+    { valor: 'CARTAO', texto: 'CARTAO' },
+    { valor: 'BOLETO', texto: 'BOLETO' }
+  ],
+  statusLocacao: [
+    { valor: 'ABERTA', texto: 'ABERTA' },
+    { valor: 'DEVOLVIDA', texto: 'DEVOLVIDA' },
+    { valor: 'CANCELADA', texto: 'CANCELADA' }
+  ]
 };
 
 const configuracoes = {
@@ -17,8 +46,11 @@ const configuracoes = {
     id: 'CLI_ID',
     campos: [
       { nome: 'CLI_NOME', label: 'Nome do cliente', tipo: 'text', obrigatorio: true },
+      { nome: 'CLI_DOCUMENTO', label: 'Documento', tipo: 'text', placeholder: 'CPF ou RG' },
+      { nome: 'CLI_EMAIL', label: 'E-mail', tipo: 'email' },
       { nome: 'CLI_TELEFONE', label: 'Telefone', tipo: 'text', placeholder: '(62) 99999-9999' },
-      { nome: 'CLI_SALDO', label: 'Saldo', tipo: 'number', step: '0.01', valorPadrao: '0' }
+      { nome: 'CLI_SALDO', label: 'Saldo', tipo: 'number', step: '0.01', valorPadrao: '0' },
+      { nome: 'CLI_ATIVO', label: 'Ativo', tipo: 'select-estatico', opcoes: 'simNao', valorPadrao: 'SIM' }
     ]
   },
   categorias: {
@@ -35,15 +67,34 @@ const configuracoes = {
     id: 'FIL_ID',
     campos: [
       { nome: 'FIL_NOME', label: 'Nome do filme', tipo: 'text', obrigatorio: true },
-      { nome: 'FIL_CAT_ID', label: 'Categoria', tipo: 'select', origem: 'categorias', value: 'CAT_ID', text: 'CAT_NOME', obrigatorio: true }
+      { nome: 'FIL_CAT_ID', label: 'Categoria', tipo: 'select', origem: 'categorias', value: 'CAT_ID', text: 'CAT_NOME', obrigatorio: true },
+      { nome: 'FIL_ANO', label: 'Ano', tipo: 'number' },
+      { nome: 'FIL_CLASSIFICACAO', label: 'Classificacao', tipo: 'text', placeholder: 'L, 10, 12, 14...' },
+      { nome: 'FIL_DURACAO_MIN', label: 'Duracao em min', tipo: 'number' },
+      { nome: 'FIL_VALOR_PADRAO', label: 'Valor padrao', tipo: 'number', step: '0.01', valorPadrao: '10' },
+      { nome: 'FIL_ATIVO', label: 'Ativo', tipo: 'select-estatico', opcoes: 'simNao', valorPadrao: 'SIM' }
+    ]
+  },
+  exemplares: {
+    titulo: 'Exemplares',
+    endpoint: '/api/exemplares',
+    id: 'EXA_ID',
+    campos: [
+      { nome: 'EXA_FIL_ID', label: 'Filme', tipo: 'select', origem: 'filmes', value: 'FIL_ID', text: 'FIL_NOME', obrigatorio: true },
+      { nome: 'EXA_CODIGO', label: 'Codigo do exemplar', tipo: 'text', obrigatorio: true },
+      { nome: 'EXA_TIPO', label: 'Tipo', tipo: 'select-estatico', opcoes: 'tipoExemplar', valorPadrao: 'FISICO' },
+      { nome: 'EXA_STATUS', label: 'Status', tipo: 'select-estatico', opcoes: 'statusExemplar', valorPadrao: 'DISPONIVEL' }
     ]
   },
   locacoes: {
     titulo: 'Locacoes',
     endpoint: '/api/locacoes',
     id: 'LOC_ID',
+    acaoEspecial: 'devolver',
     campos: [
-      { nome: 'LOC_CLI_ID', label: 'Cliente', tipo: 'select', origem: 'clientes', value: 'CLI_ID', text: 'CLI_NOME', obrigatorio: true }
+      { nome: 'LOC_CLI_ID', label: 'Cliente', tipo: 'select', origem: 'clientes', value: 'CLI_ID', text: 'CLI_NOME', obrigatorio: true },
+      { nome: 'LOC_DATA_PREVISTA', label: 'Data prevista', tipo: 'date', obrigatorio: true },
+      { nome: 'LOC_STATUS', label: 'Status', tipo: 'select-estatico', opcoes: 'statusLocacao', valorPadrao: 'ABERTA' }
     ]
   },
   itens: {
@@ -51,16 +102,63 @@ const configuracoes = {
     endpoint: '/api/itens',
     id: 'ITN_ID',
     campos: [
-      { nome: 'ITN_LOC_ID', label: 'Locacao', tipo: 'select', origem: 'locacoes', value: 'LOC_ID', text: 'LOC_ID', prefixo: 'Locacao #' , obrigatorio: true },
-      { nome: 'ITN_FIL_ID', label: 'Filme', tipo: 'select', origem: 'filmes', value: 'FIL_ID', text: 'FIL_NOME', obrigatorio: true },
+      { nome: 'ITN_LOC_ID', label: 'Locacao aberta', tipo: 'select', origem: 'locacoes', value: 'LOC_ID', text: 'LOC_ID', prefixo: 'Locacao #', filtro: item => item.LOC_STATUS === 'ABERTA', obrigatorio: true },
+      { nome: 'ITN_EXA_ID', label: 'Exemplar disponivel', tipo: 'select', origem: 'exemplares', value: 'EXA_ID', text: 'EXA_CODIGO', complemento: 'FIL_NOME', filtro: item => item.EXA_STATUS === 'DISPONIVEL', obrigatorio: true },
       { nome: 'ITN_VALOR_LOC', label: 'Valor da locacao', tipo: 'number', step: '0.01', obrigatorio: true }
     ]
+  },
+  pagamentos: {
+    titulo: 'Pagamentos',
+    endpoint: '/api/pagamentos',
+    id: 'PAG_ID',
+    campos: [
+      { nome: 'PAG_LOC_ID', label: 'Locacao', tipo: 'select', origem: 'locacoes', value: 'LOC_ID', text: 'LOC_ID', prefixo: 'Locacao #', obrigatorio: true },
+      { nome: 'PAG_VALOR', label: 'Valor pago', tipo: 'number', step: '0.01', obrigatorio: true },
+      { nome: 'PAG_FORMA', label: 'Forma', tipo: 'select-estatico', opcoes: 'formaPagamento', valorPadrao: 'DINHEIRO' },
+      { nome: 'PAG_OBSERVACAO', label: 'Observacao', tipo: 'text' }
+    ]
+  },
+  disponiveis: {
+    titulo: 'Filmes disponiveis',
+    endpoint: '/api/filmes/disponiveis',
+    id: null,
+    campos: [],
+    somenteLeitura: true
+  },
+  alugados: {
+    titulo: 'Filmes alugados',
+    endpoint: '/api/filmes/alugados',
+    id: null,
+    campos: [],
+    somenteLeitura: true
+  },
+  abertas: {
+    titulo: 'Locacoes em aberto',
+    endpoint: '/api/relatorios/locacoes-abertas',
+    id: null,
+    campos: [],
+    somenteLeitura: true
+  },
+  atrasos: {
+    titulo: 'Relatorio de atrasos',
+    endpoint: '/api/relatorios/atrasos',
+    id: null,
+    campos: [],
+    somenteLeitura: true
+  },
+  multas: {
+    titulo: 'Relatorio de multas',
+    endpoint: '/api/relatorios/multas',
+    id: null,
+    campos: [],
+    somenteLeitura: true
   },
   relatorio: {
     titulo: 'Relatorio geral de locacoes',
     endpoint: '/api/locacoes/detalhes',
     id: null,
-    campos: []
+    campos: [],
+    somenteLeitura: true
   }
 };
 
@@ -73,33 +171,69 @@ const feedback = document.querySelector('#feedback');
 const btnExcluir = document.querySelector('#btn-excluir');
 const btnLimpar = document.querySelector('#btn-limpar');
 const btnImprimir = document.querySelector('#btn-imprimir');
+const btnRecibo = document.querySelector('#btn-recibo');
 const busca = document.querySelector('#busca');
 const statusConexao = document.querySelector('#status');
 const menuItens = document.querySelectorAll('.menu-item');
 const formArea = document.querySelector('#form-area');
+const reportTabs = document.querySelectorAll('[data-relatorio]');
 
 function formatarCampo(campo) {
   const nomes = {
     CLI_ID: 'Cod. cliente',
     CLI_NOME: 'Cliente',
+    CLI_DOCUMENTO: 'Documento',
+    CLI_EMAIL: 'E-mail',
     CLI_TELEFONE: 'Telefone',
     CLI_DATA_CAD: 'Cadastro',
     CLI_SALDO: 'Saldo',
+    CLI_ATIVO: 'Ativo',
     CAT_ID: 'Cod. categoria',
     CAT_NOME: 'Categoria',
     CAT_DATA_CAD: 'Cadastro',
     FIL_ID: 'Cod. filme',
     FIL_NOME: 'Filme',
     FIL_CAT_ID: 'Cod. categoria',
+    FIL_ANO: 'Ano',
+    FIL_CLASSIFICACAO: 'Classificacao',
+    FIL_DURACAO_MIN: 'Duracao',
+    FIL_VALOR_PADRAO: 'Valor padrao',
+    QTD_DISPONIVEL: 'Disponiveis',
+    QTD_ALUGADA: 'Alugados',
+    FIL_ATIVO: 'Ativo',
     FIL_DATA_CAD: 'Cadastro',
+    EXA_ID: 'Cod. exemplar',
+    EXA_FIL_ID: 'Cod. filme',
+    EXA_CODIGO: 'Exemplar',
+    EXA_TIPO: 'Tipo',
+    EXA_STATUS: 'Status',
+    EXA_DATA_CAD: 'Cadastro',
     LOC_ID: 'Cod. locacao',
     LOC_CLI_ID: 'Cod. cliente',
     LOC_DATA_CAD: 'Data da locacao',
+    LOC_DATA_PREVISTA: 'Devolucao prevista',
+    LOC_DATA_DEVOLUCAO: 'Devolucao real',
+    LOC_STATUS: 'Status',
+    LOC_VALOR_TOTAL: 'Valor total',
+    LOC_MULTA_TOTAL: 'Multa',
+    LOC_PAGO_TOTAL: 'Pago',
+    SALDO_DEVEDOR: 'Saldo devedor',
     ITN_ID: 'Cod. item',
     ITN_LOC_ID: 'Cod. locacao',
     ITN_FIL_ID: 'Cod. filme',
+    ITN_EXA_ID: 'Cod. exemplar',
     ITN_VALOR_LOC: 'Valor',
-    CAT_NOME: 'Categoria'
+    ITN_VALOR_MULTA: 'Multa',
+    ITN_DATA_DEVOLUCAO: 'Devolucao',
+    ITN_STATUS: 'Status',
+    PAG_ID: 'Cod. pagamento',
+    PAG_LOC_ID: 'Cod. locacao',
+    PAG_VALOR: 'Valor',
+    PAG_FORMA: 'Forma',
+    PAG_DATA: 'Data',
+    PAG_OBSERVACAO: 'Observacao',
+    DIAS_ATRASO: 'Dias de atraso',
+    MULTA_PREVISTA: 'Multa prevista'
   };
 
   return nomes[campo] || campo.replaceAll('_', ' ').toLowerCase();
@@ -112,7 +246,11 @@ function formatarValor(valor, campo = '') {
     return new Date(valor).toLocaleString('pt-BR');
   }
 
-  if (campo.includes('VALOR') || campo.includes('SALDO')) {
+  if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    return new Date(`${valor}T00:00:00`).toLocaleDateString('pt-BR');
+  }
+
+  if (campo.includes('VALOR') || campo.includes('SALDO') || campo.includes('MULTA') || campo.includes('PAGO')) {
     return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
@@ -129,7 +267,6 @@ async function fetchJson(url, opcoes = {}) {
     headers: { 'Content-Type': 'application/json' },
     ...opcoes
   });
-
   const dados = await resposta.json();
 
   if (!resposta.ok) {
@@ -140,14 +277,31 @@ async function fetchJson(url, opcoes = {}) {
 }
 
 async function carregarCache() {
-  const [clientes, categorias, filmes, locacoes] = await Promise.all([
+  const [clientes, categorias, filmes, exemplares, locacoes] = await Promise.all([
     fetchJson('/api/clientes'),
     fetchJson('/api/categorias'),
     fetchJson('/api/filmes'),
+    fetchJson('/api/exemplares'),
     fetchJson('/api/locacoes')
   ]);
 
-  estado.cache = { clientes, categorias, filmes, locacoes };
+  estado.cache = { clientes, categorias, filmes, exemplares, locacoes };
+}
+
+function criarOptions(input, lista, campo) {
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Selecione...';
+  input.appendChild(placeholder);
+
+  lista.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item[campo.value] ?? item.valor;
+    const texto = item[campo.text] ?? item.texto;
+    const complemento = campo.complemento && item[campo.complemento] ? ` - ${item[campo.complemento]}` : '';
+    option.textContent = `${campo.prefixo || ''}${texto}${complemento}`;
+    input.appendChild(option);
+  });
 }
 
 function criarCampo(campo) {
@@ -156,21 +310,12 @@ function criarCampo(campo) {
   grupo.textContent = campo.label;
 
   let input;
-
-  if (campo.tipo === 'select') {
+  if (campo.tipo === 'select' || campo.tipo === 'select-estatico') {
     input = document.createElement('select');
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Selecione...';
-    input.appendChild(placeholder);
-
-    const opcoes = estado.cache[campo.origem] || [];
-    opcoes.forEach(item => {
-      const option = document.createElement('option');
-      option.value = item[campo.value];
-      option.textContent = `${campo.prefixo || ''}${item[campo.text]}`;
-      input.appendChild(option);
-    });
+    const origem = campo.tipo === 'select-estatico'
+      ? opcoes[campo.opcoes] || []
+      : (estado.cache[campo.origem] || []).filter(item => !campo.filtro || campo.filtro(item));
+    criarOptions(input, origem, campo.tipo === 'select-estatico' ? { value: 'valor', text: 'texto' } : campo);
   } else {
     input = document.createElement('input');
     input.type = campo.tipo;
@@ -181,6 +326,7 @@ function criarCampo(campo) {
 
   input.name = campo.nome;
   if (campo.obrigatorio) input.required = true;
+  if (campo.valorPadrao !== undefined && input.tagName === 'SELECT') input.value = campo.valorPadrao;
   grupo.appendChild(input);
   return grupo;
 }
@@ -190,37 +336,41 @@ function renderizarFormulario() {
   form.innerHTML = '';
   feedback.textContent = '';
 
-  if (estado.entidadeAtual === 'relatorio') {
+  if (config.somenteLeitura) {
     formArea.hidden = true;
     return;
   }
 
   formArea.hidden = false;
-
-  config.campos.forEach(campo => {
-    form.appendChild(criarCampo(campo));
-  });
+  config.campos.forEach(campo => form.appendChild(criarCampo(campo)));
 }
 
 function preencherFormulario(registro) {
   const config = configuracoes[estado.entidadeAtual];
+  if (config.somenteLeitura) return;
+
   estado.registroSelecionado = registro;
   btnExcluir.disabled = false;
+  if (btnRecibo) btnRecibo.disabled = estado.entidadeAtual !== 'locacoes';
 
   config.campos.forEach(campo => {
     const input = form.elements[campo.nome];
-    if (input) input.value = registro[campo.nome] ?? '';
+    if (!input) return;
+    const valor = registro[campo.nome] ?? '';
+    input.value = input.type === 'date' && valor ? String(valor).slice(0, 10) : valor;
   });
 
   exibirFeedback(`Registro #${registro[config.id]} selecionado para edicao.`, 'info');
 }
 
 function limparFormulario() {
+  if (!estado.entidadeAtual) return;
+  const config = configuracoes[estado.entidadeAtual];
   estado.registroSelecionado = null;
-  btnExcluir.disabled = true;
+  if (btnExcluir) btnExcluir.disabled = true;
+  if (btnRecibo) btnRecibo.disabled = true;
   form.reset();
 
-  const config = configuracoes[estado.entidadeAtual];
   config.campos.forEach(campo => {
     if (campo.valorPadrao !== undefined && form.elements[campo.nome]) {
       form.elements[campo.nome].value = campo.valorPadrao;
@@ -230,7 +380,65 @@ function limparFormulario() {
   feedback.textContent = '';
 }
 
+async function devolverLocacao(registro) {
+  if (registro.LOC_STATUS !== 'ABERTA') {
+    exibirFeedback('Apenas locacoes abertas podem ser devolvidas.', 'erro');
+    return;
+  }
+
+  const confirmar = confirm(`Registrar devolucao da locacao #${registro.LOC_ID}?`);
+  if (!confirmar) return;
+
+  try {
+    const resposta = await fetchJson(`/api/locacoes/${registro.LOC_ID}/devolver`, { method: 'POST' });
+    exibirFeedback(resposta.mensagem || 'Devolucao registrada.', 'ok');
+    await carregarDados();
+  } catch (erro) {
+    exibirFeedback(erro.message, 'erro');
+  }
+}
+
+function imprimirRecibo() {
+  const registro = estado.registroSelecionado;
+  if (!registro || estado.entidadeAtual !== 'locacoes') return;
+
+  const recibo = window.open('', '_blank', 'width=760,height=640');
+  recibo.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Recibo de locacao #${registro.LOC_ID}</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 32px; color: #182033; }
+        h1 { margin: 0 0 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        td { border: 1px solid #d9e1ec; padding: 10px; }
+        strong { display: inline-block; min-width: 180px; }
+      </style>
+    </head>
+    <body>
+      <h1>Recibo de locacao</h1>
+      <table>
+        <tr><td><strong>Locacao:</strong> #${formatarValor(registro.LOC_ID)}</td></tr>
+        <tr><td><strong>Cliente:</strong> ${formatarValor(registro.CLI_NOME)}</td></tr>
+        <tr><td><strong>Data da locacao:</strong> ${formatarValor(registro.LOC_DATA_CAD)}</td></tr>
+        <tr><td><strong>Devolucao prevista:</strong> ${formatarValor(registro.LOC_DATA_PREVISTA)}</td></tr>
+        <tr><td><strong>Status:</strong> ${formatarValor(registro.LOC_STATUS)}</td></tr>
+        <tr><td><strong>Valor total:</strong> ${formatarValor(registro.LOC_VALOR_TOTAL, 'LOC_VALOR_TOTAL')}</td></tr>
+        <tr><td><strong>Multa:</strong> ${formatarValor(registro.LOC_MULTA_TOTAL, 'LOC_MULTA_TOTAL')}</td></tr>
+        <tr><td><strong>Pago:</strong> ${formatarValor(registro.LOC_PAGO_TOTAL, 'LOC_PAGO_TOTAL')}</td></tr>
+        <tr><td><strong>Saldo devedor:</strong> ${formatarValor(registro.SALDO_DEVEDOR, 'SALDO_DEVEDOR')}</td></tr>
+      </table>
+      <script>window.print();<\/script>
+    </body>
+    </html>
+  `);
+  recibo.document.close();
+}
+
 function renderizarTabela(dados) {
+  const config = configuracoes[estado.entidadeAtual];
   tabela.innerHTML = '';
   contador.textContent = `${dados.length} registro${dados.length === 1 ? '' : 's'}`;
 
@@ -249,7 +457,7 @@ function renderizarTabela(dados) {
     trHead.appendChild(th);
   });
 
-  if (estado.entidadeAtual !== 'relatorio') {
+  if (!config.somenteLeitura || config.acaoEspecial) {
     const thAcao = document.createElement('th');
     thAcao.textContent = 'Acao';
     trHead.appendChild(thAcao);
@@ -267,14 +475,26 @@ function renderizarTabela(dados) {
       tr.appendChild(td);
     });
 
-    if (estado.entidadeAtual !== 'relatorio') {
+    if (!config.somenteLeitura || config.acaoEspecial) {
       const tdAcao = document.createElement('td');
-      const botao = document.createElement('button');
-      botao.type = 'button';
-      botao.className = 'table-button';
-      botao.textContent = 'Selecionar';
-      botao.addEventListener('click', () => preencherFormulario(registro));
-      tdAcao.appendChild(botao);
+      if (!config.somenteLeitura) {
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'table-button';
+        botao.textContent = 'Selecionar';
+        botao.addEventListener('click', () => preencherFormulario(registro));
+        tdAcao.appendChild(botao);
+      }
+
+      if (config.acaoEspecial === 'devolver' && registro.LOC_STATUS === 'ABERTA') {
+        const botaoDevolver = document.createElement('button');
+        botaoDevolver.type = 'button';
+        botaoDevolver.className = 'table-button success-button';
+        botaoDevolver.textContent = 'Devolver';
+        botaoDevolver.addEventListener('click', () => devolverLocacao(registro));
+        tdAcao.appendChild(botaoDevolver);
+      }
+
       tr.appendChild(tdAcao);
     }
 
@@ -285,9 +505,10 @@ function renderizarTabela(dados) {
 }
 
 async function carregarDados() {
+  if (!estado.entidadeAtual) return;
   const config = configuracoes[estado.entidadeAtual];
   tituloEntidade.textContent = config.titulo;
-  subtitulo.textContent = estado.entidadeAtual === 'relatorio' ? 'Consulta para impressao' : 'Formulario de manutencao';
+  subtitulo.textContent = config.somenteLeitura ? 'Consulta e relatorio' : 'Formulario de manutencao';
 
   await carregarCache();
   renderizarFormulario();
@@ -313,22 +534,17 @@ function aplicarFiltro() {
 function obterPayload() {
   const dados = new FormData(form);
   const payload = {};
-
-  for (const [chave, valor] of dados.entries()) {
-    payload[chave] = valor;
-  }
-
+  for (const [chave, valor] of dados.entries()) payload[chave] = valor;
   return payload;
 }
 
 async function salvarRegistro(evento) {
   evento.preventDefault();
-
-  if (estado.entidadeAtual === 'relatorio') return;
-
   const config = configuracoes[estado.entidadeAtual];
+  if (config.somenteLeitura) return;
+
   const payload = obterPayload();
-  const editando = Boolean(estado.registroSelecionado);
+  const editando = Boolean(estado.registroSelecionado) && !config.somenteCriar;
   const endpoint = editando
     ? `${config.endpoint}/${estado.registroSelecionado[config.id]}`
     : config.endpoint;
@@ -347,12 +563,11 @@ async function salvarRegistro(evento) {
 }
 
 async function excluirRegistro() {
-  if (!estado.registroSelecionado) return;
-
   const config = configuracoes[estado.entidadeAtual];
+  if (!estado.registroSelecionado || config.somenteLeitura) return;
+
   const id = estado.registroSelecionado[config.id];
   const confirmar = confirm(`Deseja realmente excluir o registro #${id}?`);
-
   if (!confirmar) return;
 
   try {
@@ -390,15 +605,23 @@ function trocarEntidade(entidade) {
   });
 }
 
-form.addEventListener('submit', salvarRegistro);
-btnLimpar.addEventListener('click', limparFormulario);
-btnExcluir.addEventListener('click', excluirRegistro);
-busca.addEventListener('input', aplicarFiltro);
-btnImprimir.addEventListener('click', () => window.print());
+if (form) form.addEventListener('submit', salvarRegistro);
+if (btnLimpar) btnLimpar.addEventListener('click', limparFormulario);
+if (btnExcluir) btnExcluir.addEventListener('click', excluirRegistro);
+if (btnRecibo) btnRecibo.addEventListener('click', imprimirRecibo);
+if (busca) busca.addEventListener('input', aplicarFiltro);
+if (btnImprimir) btnImprimir.addEventListener('click', () => window.print());
 
 menuItens.forEach(item => {
   item.addEventListener('click', () => trocarEntidade(item.dataset.entidade));
 });
 
+reportTabs.forEach(botao => {
+  botao.addEventListener('click', () => {
+    reportTabs.forEach(item => item.classList.toggle('active', item === botao));
+    trocarEntidade(botao.dataset.relatorio);
+  });
+});
+
 verificarConexao();
-trocarEntidade('clientes');
+if (estado.entidadeAtual) trocarEntidade(estado.entidadeAtual);
