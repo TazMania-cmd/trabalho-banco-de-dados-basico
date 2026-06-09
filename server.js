@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const app = express();
 const port = Number(process.env.PORT) || 3000;
+const publicDir = path.join(__dirname, 'public');
 const valorMultaPorDia = Number(process.env.VALOR_MULTA_DIA) || 2;
 const tmdbBaseUrl = process.env.TMDB_BASE_URL || 'https://api.themoviedb.org/3';
 const tmdbImageBaseUrl = process.env.TMDB_IMAGE_BASE_URL || 'https://image.tmdb.org/t/p';
@@ -51,10 +52,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(path.join(__dirname, '.')));
-app.use('/_CSS', express.static(path.join(__dirname, '_CSS')));
-app.use('/_JavaScript', express.static(path.join(__dirname, '_JavaScript')));
-app.use('/_Imagens', express.static(path.join(__dirname, '_Imagens')));
+app.use(express.static(publicDir));
 
 app.use('/api', (req, res, next) => {
   if (!supabase && !req.path.startsWith('/tmdb')) {
@@ -291,8 +289,8 @@ async function obterOuCriarCategoria(nomeCategoria) {
   return data;
 }
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-paginas.forEach(file => app.get(`/${file}`, (req, res) => res.sendFile(path.join(__dirname, file))));
+app.get('/', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));
+paginas.forEach(file => app.get(`/${file}`, (req, res) => res.sendFile(path.join(publicDir, file))));
 
 app.get('/api/status', async (req, res) => {
   const { error } = await supabase.from('clientes').select('cli_id').limit(1);

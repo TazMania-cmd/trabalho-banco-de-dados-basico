@@ -18,16 +18,25 @@ O token do TMDB também fica somente no backend, em variável de ambiente.
 
 ```text
 .
-|-- index.html
 |-- server.js
 |-- database.sql
 |-- package.json
 |-- .env.example
-|-- _CSS/
-|   `-- styles.css
-|-- _JavaScript/
-|   `-- app.js
-`-- _Imagens/
+`-- public/
+    |-- index.html
+    |-- clientes.html
+    |-- categorias.html
+    |-- filmes.html
+    |-- exemplares.html
+    |-- locacoes.html
+    |-- itens.html
+    |-- pagamentos.html
+    |-- relatorios.html
+    |-- _CSS/
+    |   `-- styles.css
+    |-- _JavaScript/
+    |   `-- app.js
+    `-- _Imagens/
 ```
 
 O projeto não usa models/controllers separados. Para manter o escopo acadêmico simples, o `server.js` concentra rotas, validações e regras de negócio.
