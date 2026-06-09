@@ -1,6 +1,6 @@
 # Sistema Locadora - Node.js + Supabase
 
-Projeto academico para a disciplina de Banco de Dados I. O sistema representa uma locadora de filmes com cadastro de clientes, filmes, categorias, exemplares, locacoes, devolucoes, multas por atraso e pagamentos.
+Projeto acadêmico para a disciplina de Banco de Dados I. O sistema representa uma locadora de filmes com cadastro de clientes, filmes, categorias, exemplares, locações, devoluções, multas por atraso e pagamentos.
 
 ## Stack
 
@@ -8,9 +8,11 @@ Projeto academico para a disciplina de Banco de Dados I. O sistema representa um
 - Express
 - Supabase como banco PostgreSQL
 - `@supabase/supabase-js` no backend
+- API do TMDB para busca e importação de dados de filmes
 - Front-end em HTML, CSS e JavaScript puro
 
-O front-end nao acessa o Supabase diretamente. Todas as operacoes passam pelas rotas `/api` do backend.
+O front-end não acessa o Supabase diretamente. Todas as operações passam pelas rotas `/api` do backend.
+O token do TMDB também fica somente no backend, em variável de ambiente.
 
 ## Estrutura
 
@@ -28,41 +30,47 @@ O front-end nao acessa o Supabase diretamente. Todas as operacoes passam pelas r
 `-- _Imagens/
 ```
 
-O projeto nao usa models/controllers separados. Para manter o escopo academico simples, o `server.js` concentra rotas, validacoes e regras de negocio.
+O projeto não usa models/controllers separados. Para manter o escopo acadêmico simples, o `server.js` concentra rotas, validações e regras de negócio.
 
 ## Configurar o banco
 
 1. Crie ou abra um projeto no Supabase.
 2. Abra o `SQL Editor`.
-3. Copie todo o conteudo de `database.sql`.
+3. Copie todo o conteúdo de `database.sql`.
 4. Cole no editor SQL e execute.
 
-O script recria o banco do projeto, cria constraints, indices, views e dados de exemplo.
+O script recria o banco do projeto, cria constraints, índices, views e dados de exemplo.
+
+Se o banco já existe e você quer apenas habilitar os campos novos do TMDB sem apagar dados, execute o arquivo:
+
+```text
+migrations/2026-06-09_tmdb_schema.sql
+```
 
 ## Tabelas
 
 - `clientes`: dados cadastrais, documento, contato, saldo e status ativo.
-- `categorias`: generos dos filmes.
-- `filmes`: titulo, categoria, ano, classificacao, duracao e valor padrao.
-- `exemplares`: copias fisicas ou digitais de cada filme, com status de disponibilidade.
-- `locacoes`: cabecalho da locacao, cliente, datas, status, totais, multa e pagamentos.
-- `itens`: filmes/exemplares alugados em uma locacao.
-- `pagamentos`: registros de pagamento vinculados a uma locacao.
+- `categorias`: gêneros dos filmes.
+- `filmes`: título, categoria, ano, classificação, duração e valor padrão.
+- `exemplares`: cópias físicas ou digitais de cada filme, com status de disponibilidade.
+- `locacoes`: cabeçalho da locação, cliente, datas, status, totais, multa e pagamentos.
+- `itens`: filmes/exemplares alugados em uma locação.
+- `pagamentos`: registros de pagamento vinculados a uma locação.
 
-## Regras de negocio implementadas
+## Regras de negócio implementadas
 
-- Uma locacao deve ter cliente e data prevista de devolucao.
-- Um item de locacao so pode usar exemplar com status `DISPONIVEL`.
+- Uma locação deve ter cliente e data prevista de devolução.
+- Um item de locação só pode usar exemplar com status `DISPONIVEL`.
 - Ao inserir item, o exemplar passa para `ALUGADO`.
-- Locacoes devolvidas ou canceladas nao podem receber novos itens.
-- Ao devolver uma locacao, todos os itens alugados sao marcados como `DEVOLVIDO`.
+- Locações devolvidas ou canceladas não podem receber novos itens.
+- Ao devolver uma locação, todos os itens alugados são marcados como `DEVOLVIDO`.
 - Ao devolver, os exemplares voltam para `DISPONIVEL`.
-- A devolucao duplicada e bloqueada.
-- Multa de atraso e calculada por dia de atraso e por item.
-- Pagamentos atualizam automaticamente o total pago da locacao.
-- Os totais da locacao sao recalculados a partir de itens e pagamentos.
-- Nao e permitido excluir exemplar alugado.
-- Nao e permitido excluir locacao com itens.
+- A devolução duplicada é bloqueada.
+- Multa de atraso é calculada por dia de atraso e por item.
+- Pagamentos atualizam automaticamente o total pago da locação.
+- Os totais da locação são recalculados a partir de itens e pagamentos.
+- Não é permitido excluir exemplar alugado.
+- Não é permitido excluir locação com itens.
 
 ## Configurar o backend
 
@@ -79,19 +87,22 @@ SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_ANON_KEY=sua-chave-anon-ou-publishable
 PORT=3000
 VALOR_MULTA_DIA=2
+TMDB_ACCESS_TOKEN=seu-token-read-access
 ```
 
-Tambem e possivel usar:
+Também é possível usar:
 
 ```env
 SUPABASE_SERVICE_ROLE_KEY=sua-chave-service-role
 ```
 
-Nao envie `.env.local` para o GitHub.
+Não envie `.env.local` para o GitHub.
+
+Para usar o TMDB, crie uma conta em The Movie Database, acesse as configurações de API e copie o token de leitura para `TMDB_ACCESS_TOKEN`.
 
 ## Executar
 
-Instale as dependencias:
+Instale as dependências:
 
 ```bash
 npm install
@@ -103,7 +114,7 @@ Inicie em modo desenvolvimento:
 npm run dev
 ```
 
-No PowerShell do Windows, se `npm.ps1` for bloqueado pela politica de execucao, use:
+No PowerShell do Windows, se `npm.ps1` for bloqueado pela política de execução, use:
 
 ```powershell
 npm.cmd run dev
@@ -120,17 +131,18 @@ http://localhost:3000
 - Cadastro de clientes
 - Cadastro de categorias
 - Cadastro de filmes
+- Busca e importação de filmes pelo TMDB
 - Cadastro de exemplares
-- Abertura de locacoes
-- Inclusao de itens na locacao
-- Registro de devolucao
+- Abertura de locações
+- Inclusão de itens na locação
+- Registro de devolução
 - Registro de pagamentos
-- Consulta de filmes disponiveis
+- Consulta de filmes disponíveis
 - Consulta de filmes alugados
-- Relatorio de locacoes abertas
-- Relatorio de atrasos
-- Relatorio de multas
-- Relatorio geral de locacoes
+- Relatório de locações abertas
+- Relatório de atrasos
+- Relatório de multas
+- Relatório geral de locações
 - Busca textual nas tabelas exibidas
 
 ## Rotas principais
@@ -148,6 +160,9 @@ http://localhost:3000
 - `POST /api/filmes`
 - `PUT /api/filmes/:id`
 - `DELETE /api/filmes/:id`
+- `GET /api/tmdb/search`
+- `GET /api/tmdb/movie/:id`
+- `POST /api/tmdb/import/:id`
 - `GET /api/exemplares`
 - `POST /api/exemplares`
 - `PUT /api/exemplares/:id`
@@ -163,6 +178,7 @@ http://localhost:3000
 - `DELETE /api/itens/:id`
 - `GET /api/pagamentos`
 - `POST /api/pagamentos`
+- `PUT /api/pagamentos/:id`
 - `DELETE /api/pagamentos/:id`
 - `GET /api/filmes/disponiveis`
 - `GET /api/filmes/alugados`
@@ -174,11 +190,11 @@ http://localhost:3000
 
 ## Dados de exemplo
 
-O `database.sql` cria clientes, categorias, filmes, exemplares fisicos e digitais, locacoes abertas, locacoes devolvidas, pagamentos parciais e totais, atrasos e multas.
+O `database.sql` cria clientes, categorias, filmes, exemplares físicos e digitais, locações abertas, locações devolvidas, pagamentos parciais e totais, atrasos e multas.
 
-## Observacoes de seguranca
+## Observações de segurança
 
-- O backend valida campos obrigatorios antes de gravar.
-- O acesso ao banco usa a biblioteca oficial do Supabase, sem concatenacao manual de SQL.
-- O SQL cria chaves primarias, estrangeiras, checks, uniques e indices.
-- As policies de RLS foram liberadas para CRUD porque o objetivo e academico e o front depende da chave anon/publishable. Em um sistema real, essas policies devem ser restritas por usuario autenticado.
+- O backend valida campos obrigatórios antes de gravar.
+- O acesso ao banco usa a biblioteca oficial do Supabase, sem concatenação manual de SQL.
+- O SQL cria chaves primárias, estrangeiras, checks, uniques e índices.
+- As policies de RLS foram liberadas para CRUD porque o objetivo é acadêmico e o front depende da chave anon/publishable. Em um sistema real, essas policies devem ser restritas por usuário autenticado.

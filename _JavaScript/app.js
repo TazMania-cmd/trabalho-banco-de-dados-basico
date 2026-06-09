@@ -8,7 +8,9 @@ const estado = {
     filmes: [],
     exemplares: [],
     locacoes: []
-  }
+  },
+  cacheCarregado: false,
+  conectado: false
 };
 
 const opcoes = {
@@ -69,9 +71,9 @@ const configuracoes = {
       { nome: 'FIL_NOME', label: 'Nome do filme', tipo: 'text', obrigatorio: true },
       { nome: 'FIL_CAT_ID', label: 'Categoria', tipo: 'select', origem: 'categorias', value: 'CAT_ID', text: 'CAT_NOME', obrigatorio: true },
       { nome: 'FIL_ANO', label: 'Ano', tipo: 'number' },
-      { nome: 'FIL_CLASSIFICACAO', label: 'Classificacao', tipo: 'text', placeholder: 'L, 10, 12, 14...' },
-      { nome: 'FIL_DURACAO_MIN', label: 'Duracao em min', tipo: 'number' },
-      { nome: 'FIL_VALOR_PADRAO', label: 'Valor padrao', tipo: 'number', step: '0.01', valorPadrao: '10' },
+      { nome: 'FIL_CLASSIFICACAO', label: 'Classificação', tipo: 'text', placeholder: 'L, 10, 12, 14...' },
+      { nome: 'FIL_DURACAO_MIN', label: 'Duração em min', tipo: 'number' },
+      { nome: 'FIL_VALOR_PADRAO', label: 'Valor padrão', tipo: 'number', step: '0.01', valorPadrao: '10' },
       { nome: 'FIL_ATIVO', label: 'Ativo', tipo: 'select-estatico', opcoes: 'simNao', valorPadrao: 'SIM' }
     ]
   },
@@ -81,13 +83,13 @@ const configuracoes = {
     id: 'EXA_ID',
     campos: [
       { nome: 'EXA_FIL_ID', label: 'Filme', tipo: 'select', origem: 'filmes', value: 'FIL_ID', text: 'FIL_NOME', obrigatorio: true },
-      { nome: 'EXA_CODIGO', label: 'Codigo do exemplar', tipo: 'text', obrigatorio: true },
+      { nome: 'EXA_CODIGO', label: 'Código do exemplar', tipo: 'text', obrigatorio: true },
       { nome: 'EXA_TIPO', label: 'Tipo', tipo: 'select-estatico', opcoes: 'tipoExemplar', valorPadrao: 'FISICO' },
       { nome: 'EXA_STATUS', label: 'Status', tipo: 'select-estatico', opcoes: 'statusExemplar', valorPadrao: 'DISPONIVEL' }
     ]
   },
   locacoes: {
-    titulo: 'Locacoes',
+    titulo: 'Locações',
     endpoint: '/api/locacoes',
     id: 'LOC_ID',
     acaoEspecial: 'devolver',
@@ -98,13 +100,13 @@ const configuracoes = {
     ]
   },
   itens: {
-    titulo: 'Itens da locacao',
+    titulo: 'Itens da locação',
     endpoint: '/api/itens',
     id: 'ITN_ID',
     campos: [
-      { nome: 'ITN_LOC_ID', label: 'Locacao aberta', tipo: 'select', origem: 'locacoes', value: 'LOC_ID', text: 'LOC_ID', prefixo: 'Locacao #', filtro: item => item.LOC_STATUS === 'ABERTA', obrigatorio: true },
-      { nome: 'ITN_EXA_ID', label: 'Exemplar disponivel', tipo: 'select', origem: 'exemplares', value: 'EXA_ID', text: 'EXA_CODIGO', complemento: 'FIL_NOME', filtro: item => item.EXA_STATUS === 'DISPONIVEL', obrigatorio: true },
-      { nome: 'ITN_VALOR_LOC', label: 'Valor da locacao', tipo: 'number', step: '0.01', obrigatorio: true }
+      { nome: 'ITN_LOC_ID', label: 'Locação aberta', tipo: 'select', origem: 'locacoes', value: 'LOC_ID', text: 'LOC_ID', prefixo: 'Locação #', filtro: item => item.LOC_STATUS === 'ABERTA', obrigatorio: true },
+      { nome: 'ITN_EXA_ID', label: 'Exemplar disponível', tipo: 'select', origem: 'exemplares', value: 'EXA_ID', text: 'EXA_CODIGO', complemento: 'FIL_NOME', filtro: item => item.EXA_STATUS === 'DISPONIVEL', obrigatorio: true },
+      { nome: 'ITN_VALOR_LOC', label: 'Valor da locação', tipo: 'number', step: '0.01', obrigatorio: true }
     ]
   },
   pagamentos: {
@@ -112,14 +114,14 @@ const configuracoes = {
     endpoint: '/api/pagamentos',
     id: 'PAG_ID',
     campos: [
-      { nome: 'PAG_LOC_ID', label: 'Locacao', tipo: 'select', origem: 'locacoes', value: 'LOC_ID', text: 'LOC_ID', prefixo: 'Locacao #', obrigatorio: true },
+      { nome: 'PAG_LOC_ID', label: 'Locação', tipo: 'select', origem: 'locacoes', value: 'LOC_ID', text: 'LOC_ID', prefixo: 'Locação #', obrigatorio: true },
       { nome: 'PAG_VALOR', label: 'Valor pago', tipo: 'number', step: '0.01', obrigatorio: true },
       { nome: 'PAG_FORMA', label: 'Forma', tipo: 'select-estatico', opcoes: 'formaPagamento', valorPadrao: 'DINHEIRO' },
-      { nome: 'PAG_OBSERVACAO', label: 'Observacao', tipo: 'text' }
+      { nome: 'PAG_OBSERVACAO', label: 'Observação', tipo: 'text' }
     ]
   },
   disponiveis: {
-    titulo: 'Filmes disponiveis',
+    titulo: 'Filmes disponíveis',
     endpoint: '/api/filmes/disponiveis',
     id: null,
     campos: [],
@@ -133,28 +135,28 @@ const configuracoes = {
     somenteLeitura: true
   },
   abertas: {
-    titulo: 'Locacoes em aberto',
+    titulo: 'Locações em aberto',
     endpoint: '/api/relatorios/locacoes-abertas',
     id: null,
     campos: [],
     somenteLeitura: true
   },
   atrasos: {
-    titulo: 'Relatorio de atrasos',
+    titulo: 'Relatório de atrasos',
     endpoint: '/api/relatorios/atrasos',
     id: null,
     campos: [],
     somenteLeitura: true
   },
   multas: {
-    titulo: 'Relatorio de multas',
+    titulo: 'Relatório de multas',
     endpoint: '/api/relatorios/multas',
     id: null,
     campos: [],
     somenteLeitura: true
   },
   relatorio: {
-    titulo: 'Relatorio geral de locacoes',
+    titulo: 'Relatório geral de locações',
     endpoint: '/api/locacoes/detalhes',
     id: null,
     campos: [],
@@ -173,14 +175,16 @@ const btnLimpar = document.querySelector('#btn-limpar');
 const btnImprimir = document.querySelector('#btn-imprimir');
 const btnRecibo = document.querySelector('#btn-recibo');
 const busca = document.querySelector('#busca');
-const statusConexao = document.querySelector('#status');
+const formTmdb = document.querySelector('#form-tmdb');
+const tmdbBusca = document.querySelector('#tmdb-busca');
+const tmdbResultados = document.querySelector('#tmdb-resultados');
 const menuItens = document.querySelectorAll('.menu-item');
 const formArea = document.querySelector('#form-area');
 const reportTabs = document.querySelectorAll('[data-relatorio]');
 
 function formatarCampo(campo) {
   const nomes = {
-    CLI_ID: 'Cod. cliente',
+    CLI_ID: 'Cód. cliente',
     CLI_NOME: 'Cliente',
     CLI_DOCUMENTO: 'Documento',
     CLI_EMAIL: 'E-mail',
@@ -188,50 +192,52 @@ function formatarCampo(campo) {
     CLI_DATA_CAD: 'Cadastro',
     CLI_SALDO: 'Saldo',
     CLI_ATIVO: 'Ativo',
-    CAT_ID: 'Cod. categoria',
+    CAT_ID: 'Cód. categoria',
     CAT_NOME: 'Categoria',
     CAT_DATA_CAD: 'Cadastro',
-    FIL_ID: 'Cod. filme',
+    FIL_ID: 'Cód. filme',
+    FIL_TMDB_ID: 'Cód. TMDB',
+    FIL_POSTER: 'Pôster',
     FIL_NOME: 'Filme',
-    FIL_CAT_ID: 'Cod. categoria',
+    FIL_CAT_ID: 'Cód. categoria',
     FIL_ANO: 'Ano',
-    FIL_CLASSIFICACAO: 'Classificacao',
-    FIL_DURACAO_MIN: 'Duracao',
-    FIL_VALOR_PADRAO: 'Valor padrao',
-    QTD_DISPONIVEL: 'Disponiveis',
+    FIL_CLASSIFICACAO: 'Classificação',
+    FIL_DURACAO_MIN: 'Duração',
+    FIL_VALOR_PADRAO: 'Valor padrão',
+    QTD_DISPONIVEL: 'Disponíveis',
     QTD_ALUGADA: 'Alugados',
     FIL_ATIVO: 'Ativo',
     FIL_DATA_CAD: 'Cadastro',
-    EXA_ID: 'Cod. exemplar',
-    EXA_FIL_ID: 'Cod. filme',
+    EXA_ID: 'Cód. exemplar',
+    EXA_FIL_ID: 'Cód. filme',
     EXA_CODIGO: 'Exemplar',
     EXA_TIPO: 'Tipo',
     EXA_STATUS: 'Status',
     EXA_DATA_CAD: 'Cadastro',
-    LOC_ID: 'Cod. locacao',
-    LOC_CLI_ID: 'Cod. cliente',
-    LOC_DATA_CAD: 'Data da locacao',
-    LOC_DATA_PREVISTA: 'Devolucao prevista',
-    LOC_DATA_DEVOLUCAO: 'Devolucao real',
+    LOC_ID: 'Cód. locação',
+    LOC_CLI_ID: 'Cód. cliente',
+    LOC_DATA_CAD: 'Data da locação',
+    LOC_DATA_PREVISTA: 'Devolução prevista',
+    LOC_DATA_DEVOLUCAO: 'Devolução real',
     LOC_STATUS: 'Status',
     LOC_VALOR_TOTAL: 'Valor total',
     LOC_MULTA_TOTAL: 'Multa',
     LOC_PAGO_TOTAL: 'Pago',
     SALDO_DEVEDOR: 'Saldo devedor',
-    ITN_ID: 'Cod. item',
-    ITN_LOC_ID: 'Cod. locacao',
-    ITN_FIL_ID: 'Cod. filme',
-    ITN_EXA_ID: 'Cod. exemplar',
+    ITN_ID: 'Cód. item',
+    ITN_LOC_ID: 'Cód. locação',
+    ITN_FIL_ID: 'Cód. filme',
+    ITN_EXA_ID: 'Cód. exemplar',
     ITN_VALOR_LOC: 'Valor',
     ITN_VALOR_MULTA: 'Multa',
-    ITN_DATA_DEVOLUCAO: 'Devolucao',
+    ITN_DATA_DEVOLUCAO: 'Devolução',
     ITN_STATUS: 'Status',
-    PAG_ID: 'Cod. pagamento',
-    PAG_LOC_ID: 'Cod. locacao',
+    PAG_ID: 'Cód. pagamento',
+    PAG_LOC_ID: 'Cód. locação',
     PAG_VALOR: 'Valor',
     PAG_FORMA: 'Forma',
     PAG_DATA: 'Data',
-    PAG_OBSERVACAO: 'Observacao',
+    PAG_OBSERVACAO: 'Observação',
     DIAS_ATRASO: 'Dias de atraso',
     MULTA_PREVISTA: 'Multa prevista'
   };
@@ -257,6 +263,31 @@ function formatarValor(valor, campo = '') {
   return valor;
 }
 
+function renderizarCelula(td, valor, coluna) {
+  if (coluna === 'FIL_POSTER') {
+    td.className = 'poster-cell';
+
+    if (valor) {
+      const img = document.createElement('img');
+      img.className = 'table-poster';
+      img.src = valor;
+      img.alt = 'Pôster do filme';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      td.appendChild(img);
+      return;
+    }
+
+    const placeholder = document.createElement('span');
+    placeholder.className = 'table-poster-placeholder';
+    placeholder.textContent = 'Sem pôster';
+    td.appendChild(placeholder);
+    return;
+  }
+
+  td.textContent = formatarValor(valor, coluna);
+}
+
 function exibirFeedback(texto, tipo = 'ok') {
   feedback.textContent = texto;
   feedback.className = `feedback ${tipo}`;
@@ -270,22 +301,35 @@ async function fetchJson(url, opcoes = {}) {
   const dados = await resposta.json();
 
   if (!resposta.ok) {
-    throw new Error(dados.erro || dados.detalhe || 'Erro na operacao.');
+    throw new Error(dados.erro || dados.detalhe || 'Erro na operação.');
   }
 
   return dados;
 }
 
-async function carregarCache() {
-  const [clientes, categorias, filmes, exemplares, locacoes] = await Promise.all([
-    fetchJson('/api/clientes'),
-    fetchJson('/api/categorias'),
-    fetchJson('/api/filmes'),
-    fetchJson('/api/exemplares'),
-    fetchJson('/api/locacoes')
-  ]);
+async function carregarCache(force = false) {
+  if (estado.cacheCarregado && !force) return;
+  
+  try {
+    const [clientes, categorias, filmes, exemplares, locacoes] = await Promise.all([
+      fetchJson('/api/clientes'),
+      fetchJson('/api/categorias'),
+      fetchJson('/api/filmes'),
+      fetchJson('/api/exemplares'),
+      fetchJson('/api/locacoes')
+    ]);
 
-  estado.cache = { clientes, categorias, filmes, exemplares, locacoes };
+    estado.cache = { clientes, categorias, filmes, exemplares, locacoes };
+    estado.cacheCarregado = true;
+    estado.conectado = true;
+  } catch (erro) {
+    estado.conectado = false;
+    throw erro;
+  }
+}
+
+function precisaCache(config) {
+  return !config.somenteLeitura && config.campos.some(campo => campo.tipo === 'select');
 }
 
 function criarOptions(input, lista, campo) {
@@ -357,10 +401,16 @@ function preencherFormulario(registro) {
     const input = form.elements[campo.nome];
     if (!input) return;
     const valor = registro[campo.nome] ?? '';
+    if (input.tagName === 'SELECT' && valor && ![...input.options].some(option => option.value === String(valor))) {
+      const option = document.createElement('option');
+      option.value = valor;
+      option.textContent = `${campo.prefixo || ''}${valor}`;
+      input.appendChild(option);
+    }
     input.value = input.type === 'date' && valor ? String(valor).slice(0, 10) : valor;
   });
 
-  exibirFeedback(`Registro #${registro[config.id]} selecionado para edicao.`, 'info');
+  exibirFeedback(`Registro #${registro[config.id]} selecionado para edição.`, 'info');
 }
 
 function limparFormulario() {
@@ -382,17 +432,19 @@ function limparFormulario() {
 
 async function devolverLocacao(registro) {
   if (registro.LOC_STATUS !== 'ABERTA') {
-    exibirFeedback('Apenas locacoes abertas podem ser devolvidas.', 'erro');
+    exibirFeedback('Apenas locações abertas podem ser devolvidas.', 'erro');
     return;
   }
 
-  const confirmar = confirm(`Registrar devolucao da locacao #${registro.LOC_ID}?`);
+  const confirmar = confirm(`Registrar devolução da locação #${registro.LOC_ID}?`);
   if (!confirmar) return;
 
   try {
     const resposta = await fetchJson(`/api/locacoes/${registro.LOC_ID}/devolver`, { method: 'POST' });
-    exibirFeedback(resposta.mensagem || 'Devolucao registrada.', 'ok');
+    const mensagem = resposta.mensagem || 'Devolução registrada.';
+    estado.cacheCarregado = false;
     await carregarDados();
+    exibirFeedback(mensagem, 'ok');
   } catch (erro) {
     exibirFeedback(erro.message, 'erro');
   }
@@ -408,7 +460,7 @@ function imprimirRecibo() {
     <html lang="pt-BR">
     <head>
       <meta charset="UTF-8">
-      <title>Recibo de locacao #${registro.LOC_ID}</title>
+      <title>Recibo de locação #${registro.LOC_ID}</title>
       <style>
         body { font-family: Arial, sans-serif; margin: 32px; color: #182033; }
         h1 { margin: 0 0 16px; }
@@ -418,12 +470,12 @@ function imprimirRecibo() {
       </style>
     </head>
     <body>
-      <h1>Recibo de locacao</h1>
+      <h1>Recibo de locação</h1>
       <table>
-        <tr><td><strong>Locacao:</strong> #${formatarValor(registro.LOC_ID)}</td></tr>
+        <tr><td><strong>Locação:</strong> #${formatarValor(registro.LOC_ID)}</td></tr>
         <tr><td><strong>Cliente:</strong> ${formatarValor(registro.CLI_NOME)}</td></tr>
-        <tr><td><strong>Data da locacao:</strong> ${formatarValor(registro.LOC_DATA_CAD)}</td></tr>
-        <tr><td><strong>Devolucao prevista:</strong> ${formatarValor(registro.LOC_DATA_PREVISTA)}</td></tr>
+        <tr><td><strong>Data da locação:</strong> ${formatarValor(registro.LOC_DATA_CAD)}</td></tr>
+        <tr><td><strong>Devolução prevista:</strong> ${formatarValor(registro.LOC_DATA_PREVISTA)}</td></tr>
         <tr><td><strong>Status:</strong> ${formatarValor(registro.LOC_STATUS)}</td></tr>
         <tr><td><strong>Valor total:</strong> ${formatarValor(registro.LOC_VALOR_TOTAL, 'LOC_VALOR_TOTAL')}</td></tr>
         <tr><td><strong>Multa:</strong> ${formatarValor(registro.LOC_MULTA_TOTAL, 'LOC_MULTA_TOTAL')}</td></tr>
@@ -459,7 +511,7 @@ function renderizarTabela(dados) {
 
   if (!config.somenteLeitura || config.acaoEspecial) {
     const thAcao = document.createElement('th');
-    thAcao.textContent = 'Acao';
+    thAcao.textContent = 'Ação';
     trHead.appendChild(thAcao);
   }
 
@@ -471,7 +523,7 @@ function renderizarTabela(dados) {
     const tr = document.createElement('tr');
     colunas.forEach(coluna => {
       const td = document.createElement('td');
-      td.textContent = formatarValor(registro[coluna], coluna);
+      renderizarCelula(td, registro[coluna], coluna);
       tr.appendChild(td);
     });
 
@@ -508,13 +560,23 @@ async function carregarDados() {
   if (!estado.entidadeAtual) return;
   const config = configuracoes[estado.entidadeAtual];
   tituloEntidade.textContent = config.titulo;
-  subtitulo.textContent = config.somenteLeitura ? 'Consulta e relatorio' : 'Formulario de manutencao';
+  subtitulo.textContent = config.somenteLeitura ? 'Consulta e relatório' : 'Formulário de manutenção';
 
-  await carregarCache();
-  renderizarFormulario();
-  estado.dados = await fetchJson(config.endpoint);
-  aplicarFiltro();
-  limparFormulario();
+  try {
+    renderizarFormulario();
+    if (precisaCache(config)) {
+      await carregarCache();
+      renderizarFormulario();
+    }
+    estado.dados = await fetchJson(config.endpoint);
+    aplicarFiltro();
+    limparFormulario();
+  } catch (erro) {
+    console.error('Falha ao carregar dados:', erro);
+    renderizarFormulario();
+    exibirFeedback('O banco de dados parece estar offline. Verifique a conexão.', 'erro');
+    renderizarTabela([]);
+  }
 }
 
 function aplicarFiltro() {
@@ -529,6 +591,132 @@ function aplicarFiltro() {
   });
 
   renderizarTabela(filtrados);
+}
+
+function encontrarCategoriaPorNome(nome) {
+  if (!nome) return null;
+  const normalizado = nome.trim().toLowerCase();
+  return estado.cache.categorias.find(categoria => categoria.CAT_NOME?.trim().toLowerCase() === normalizado) || null;
+}
+
+function preencherFilmeComTmdb(filme) {
+  if (estado.entidadeAtual !== 'filmes') return;
+  estado.registroSelecionado = null;
+  if (btnExcluir) btnExcluir.disabled = true;
+
+  const campos = {
+    FIL_NOME: filme.titulo,
+    FIL_ANO: filme.ano,
+    FIL_CLASSIFICACAO: filme.classificacao,
+    FIL_DURACAO_MIN: filme.duracao,
+    FIL_VALOR_PADRAO: form.elements.FIL_VALOR_PADRAO?.value || '10',
+    FIL_ATIVO: 'SIM'
+  };
+
+  Object.entries(campos).forEach(([nome, valor]) => {
+    if (form.elements[nome] && valor !== null && valor !== undefined) form.elements[nome].value = valor;
+  });
+
+  const categoria = encontrarCategoriaPorNome(filme.categoria);
+  if (categoria && form.elements.FIL_CAT_ID) {
+    form.elements.FIL_CAT_ID.value = categoria.CAT_ID;
+    exibirFeedback(`Dados de "${filme.titulo}" preenchidos a partir do TMDB.`, 'info');
+  } else {
+    exibirFeedback(`Dados preenchidos. Cadastre ou selecione a categoria "${filme.categoria || 'Sem categoria'}" antes de salvar.`, 'info');
+  }
+}
+
+function renderizarResultadosTmdb(filmes) {
+  if (!tmdbResultados) return;
+  tmdbResultados.innerHTML = '';
+
+  if (!filmes.length) {
+    tmdbResultados.innerHTML = '<p class="tmdb-empty">Nenhum filme encontrado no TMDB.</p>';
+    return;
+  }
+
+  filmes.forEach(filme => {
+    const card = document.createElement('article');
+    card.className = 'tmdb-card';
+
+    const poster = document.createElement('div');
+    poster.className = 'tmdb-poster';
+    if (filme.posterUrl) {
+      const img = document.createElement('img');
+      img.src = filme.posterUrl;
+      img.alt = `Pôster de ${filme.titulo}`;
+      poster.appendChild(img);
+    } else {
+      poster.textContent = 'TMDB';
+    }
+
+    const info = document.createElement('div');
+    info.className = 'tmdb-info';
+
+    const titulo = document.createElement('h3');
+    titulo.textContent = `${filme.titulo || 'Sem título'}${filme.ano ? ` (${filme.ano})` : ''}`;
+
+    const meta = document.createElement('p');
+    meta.textContent = [filme.categoria, filme.dataLancamento].filter(Boolean).join(' • ') || 'Sem metadados';
+
+    const sinopse = document.createElement('p');
+    sinopse.className = 'tmdb-overview';
+    sinopse.textContent = filme.sinopse || 'Sem sinopse disponível.';
+
+    const actions = document.createElement('div');
+    actions.className = 'tmdb-actions';
+
+    const btnUsar = document.createElement('button');
+    btnUsar.type = 'button';
+    btnUsar.className = 'secondary-button';
+    btnUsar.textContent = 'Usar dados';
+    btnUsar.addEventListener('click', async () => {
+      try {
+        const detalhes = await fetchJson(`/api/tmdb/movie/${filme.tmdbId}`);
+        preencherFilmeComTmdb(detalhes);
+      } catch (erro) {
+        exibirFeedback(erro.message, 'erro');
+      }
+    });
+
+    const btnImportar = document.createElement('button');
+    btnImportar.type = 'button';
+    btnImportar.textContent = 'Importar';
+    btnImportar.addEventListener('click', async () => {
+      try {
+        const resposta = await fetchJson(`/api/tmdb/import/${filme.tmdbId}`, { method: 'POST' });
+        estado.cacheCarregado = false;
+        await carregarDados();
+        exibirFeedback(resposta.mensagem || 'Filme importado do TMDB.', 'ok');
+      } catch (erro) {
+        exibirFeedback(erro.message, 'erro');
+      }
+    });
+
+    actions.append(btnUsar, btnImportar);
+    info.append(titulo, meta, sinopse, actions);
+    card.append(poster, info);
+    tmdbResultados.appendChild(card);
+  });
+}
+
+async function buscarFilmesTmdb(evento) {
+  evento.preventDefault();
+  const termo = tmdbBusca.value.trim();
+  if (termo.length < 2) {
+    exibirFeedback('Informe ao menos 2 caracteres para buscar no TMDB.', 'erro');
+    return;
+  }
+
+  tmdbResultados.innerHTML = '<p class="tmdb-empty">Buscando no TMDB...</p>';
+
+  try {
+    const dados = await fetchJson(`/api/tmdb/search?query=${encodeURIComponent(termo)}`);
+    renderizarResultadosTmdb(dados.resultados || []);
+  } catch (erro) {
+    tmdbResultados.innerHTML = '';
+    exibirFeedback(erro.message, 'erro');
+  }
 }
 
 function obterPayload() {
@@ -555,8 +743,10 @@ async function salvarRegistro(evento) {
       body: JSON.stringify(payload)
     });
 
-    exibirFeedback(resposta.mensagem || 'Registro salvo com sucesso.', 'ok');
+    const mensagem = resposta.mensagem || 'Registro salvo com sucesso.';
+    estado.cacheCarregado = false;
     await carregarDados();
+    exibirFeedback(mensagem, 'ok');
   } catch (erro) {
     exibirFeedback(erro.message, 'erro');
   }
@@ -572,21 +762,12 @@ async function excluirRegistro() {
 
   try {
     const resposta = await fetchJson(`${config.endpoint}/${id}`, { method: 'DELETE' });
-    exibirFeedback(resposta.mensagem || 'Registro excluido com sucesso.', 'ok');
+    const mensagem = resposta.mensagem || 'Registro excluído com sucesso.';
+    estado.cacheCarregado = false;
     await carregarDados();
+    exibirFeedback(mensagem, 'ok');
   } catch (erro) {
-    exibirFeedback(`${erro.message} Verifique se o registro nao esta sendo usado por outra tabela.`, 'erro');
-  }
-}
-
-async function verificarConexao() {
-  try {
-    await fetchJson('/api/status');
-    statusConexao.textContent = 'Backend e Supabase conectados';
-    statusConexao.className = 'status ok';
-  } catch {
-    statusConexao.textContent = 'Falha na conexao com o backend/Supabase';
-    statusConexao.className = 'status erro';
+    exibirFeedback(`${erro.message} Verifique se o registro não está sendo usado por outra tabela.`, 'erro');
   }
 }
 
@@ -611,6 +792,7 @@ if (btnExcluir) btnExcluir.addEventListener('click', excluirRegistro);
 if (btnRecibo) btnRecibo.addEventListener('click', imprimirRecibo);
 if (busca) busca.addEventListener('input', aplicarFiltro);
 if (btnImprimir) btnImprimir.addEventListener('click', () => window.print());
+if (formTmdb) formTmdb.addEventListener('submit', buscarFilmesTmdb);
 
 menuItens.forEach(item => {
   item.addEventListener('click', () => trocarEntidade(item.dataset.entidade));
@@ -623,5 +805,4 @@ reportTabs.forEach(botao => {
   });
 });
 
-verificarConexao();
 if (estado.entidadeAtual) trocarEntidade(estado.entidadeAtual);
