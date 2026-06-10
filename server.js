@@ -4,6 +4,7 @@ const session = require('express-session');
 const { createClient } = require('@supabase/supabase-js');
 const criarAuthRoutes = require('./src/routes/authRoutes');
 const { criarAdminInicial } = require('./src/auth/authService');
+const SupabaseSessionStore = require('./src/auth/supabaseSessionStore');
 const {
   exigirAutenticacaoApi,
   exigirAutenticacaoPagina,
@@ -38,10 +39,15 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const supabase = supabaseUrl && supabaseKey
   ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false } })
   : null;
+const errosAmbiente = [];
 
 if (isProduction && !process.env.SESSION_SECRET) {
   console.error('Erro: SESSION_SECRET Ã© obrigatÃ³rio em produÃ§Ã£o.');
-  process.exit(1);
+  errosAmbiente.push('SESSION_SECRET é obrigatório em produção.');
+}
+
+if (isProduction && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  errosAmbiente.push('SUPABASE_SERVICE_ROLE_KEY é obrigatória em produção para autenticação e sessões.');
 }
 
 if (isProduction) app.set('trust proxy', 1);
@@ -72,6 +78,7 @@ app.use(express.json({ limit: '1mb' }));
 app.use(session({
   name: 'locadora.sid',
   secret: sessionSecret,
+  store: supabase ? new SupabaseSessionStore({ supabase }) : undefined,
   resave: false,
   saveUninitialized: false,
   rolling: true,
@@ -83,7 +90,7 @@ app.use(session({
   }
 }));
 
-app.use('/auth', criarAuthRoutes({ supabase }));
+app.use('/auth', ambienteValido, criarAuthRoutes({ supabase, garantirAdminInicial }));
 const servirAssetsEstaticos = express.static(publicDir, {
   index: false,
   extensions: false,
@@ -91,6 +98,35 @@ const servirAssetsEstaticos = express.static(publicDir, {
     if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-store');
   }
 });
+if (!supabase) {
+  errosAmbiente.push('SUPABASE_URL e SUPABASE_ANON_KEY ou SUPABASE_SERVICE_ROLE_KEY são obrigatórios.');
+}
+
+if (errosAmbiente.length) {
+  console.error('Configuração de ambiente inválida:', errosAmbiente.join(' '));
+}
+
+function ambienteValido(req, res, next) {
+  if (!errosAmbiente.length) return next();
+  return res.status(500).json({
+    erro: 'Configuração de ambiente inválida.',
+    detalhes: errosAmbiente
+  });
+}
+
+let adminInicialPromise = null;
+async function garantirAdminInicial() {
+  if (!supabase) return;
+  if (!adminInicialPromise) {
+    adminInicialPromise = criarAdminInicial(supabase).catch(error => {
+      adminInicialPromise = null;
+      console.error('Admin inicial não verificado.', error);
+      throw error;
+    });
+  }
+  return adminInicialPromise;
+}
+
 app.use((req, res, next) => {
   if (req.path.endsWith('.html')) return next();
   return servirAssetsEstaticos(req, res, next);
@@ -103,6 +139,7 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+app.use('/api', ambienteValido);
 app.use('/api', exigirAutenticacaoApi);
 
 const paginas = [
@@ -1034,11 +1071,15 @@ app.use('/api', (req, res) => {
 });
 
 async function iniciarServidor() {
-  await criarAdminInicial(supabase);
+  await garantirAdminInicial();
   app.listen(port, () => console.log(`Servidor: http://localhost:${port}`));
 }
 
-iniciarServidor().catch(error => {
-  console.error('Falha ao iniciar o servidor.', error);
-  process.exit(1);
-});
+if (require.main === module) {
+  iniciarServidor().catch(error => {
+    console.error('Falha ao iniciar o servidor.', error);
+    process.exit(1);
+  });
+}
+
+module.exports = app;

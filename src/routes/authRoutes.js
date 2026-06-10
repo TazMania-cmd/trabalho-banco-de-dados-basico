@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 const { autenticarUsuario } = require('../auth/authService');
 const { usuarioDaSessao } = require('../middlewares/authMiddleware');
 
-function criarAuthRoutes({ supabase }) {
+function criarAuthRoutes({ supabase, garantirAdminInicial }) {
   const router = express.Router();
 
   const loginLimiter = rateLimit({
@@ -18,6 +18,7 @@ function criarAuthRoutes({ supabase }) {
     if (!supabase) return res.status(500).json({ erro: 'Supabase não configurado.' });
 
     try {
+      if (garantirAdminInicial) await garantirAdminInicial();
       const usuario = await autenticarUsuario(supabase, req.body || {});
 
       req.session.regenerate(error => {
@@ -37,9 +38,17 @@ function criarAuthRoutes({ supabase }) {
   });
 
   router.post('/logout', (req, res) => {
+    if (!req.session?.usuario) {
+      res.clearCookie('locadora.sid');
+      return res.status(200).json({ ok: true });
+    }
+
     req.session.destroy(error => {
       res.clearCookie('locadora.sid');
-      if (error) return res.status(500).json({ erro: 'Não foi possível encerrar a sessão.' });
+      if (error) {
+        console.error('Falha ao encerrar sessão.', error);
+        return res.status(500).json({ erro: 'Não foi possível encerrar a sessão.' });
+      }
       return res.status(200).json({ ok: true });
     });
   });
