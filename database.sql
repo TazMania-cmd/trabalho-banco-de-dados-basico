@@ -12,7 +12,7 @@ DROP VIEW IF EXISTS
   vw_locacoes_detalhes,
   vw_clientes_locacoes;
 
-DROP TABLE IF EXISTS pagamentos, itens, locacoes, exemplares, filmes, categorias, clientes CASCADE;
+DROP TABLE IF EXISTS usuarios, pagamentos, itens, locacoes, exemplares, filmes, categorias, clientes CASCADE;
 
 CREATE TABLE clientes (
   cli_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -98,6 +98,15 @@ CREATE TABLE pagamentos (
   CONSTRAINT ck_pag_valor CHECK (pag_valor > 0)
 );
 
+CREATE TABLE usuarios (
+  id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  nome VARCHAR(120) NOT NULL,
+  email VARCHAR(160) NOT NULL UNIQUE,
+  senha_hash VARCHAR(255) NOT NULL,
+  ativo BOOLEAN DEFAULT true NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 CREATE INDEX idx_filmes_categoria ON filmes(fil_cat_id);
 CREATE INDEX idx_filmes_tmdb ON filmes(fil_tmdb_id);
 CREATE INDEX idx_exemplares_filme ON exemplares(exa_fil_id);
@@ -107,6 +116,7 @@ CREATE INDEX idx_locacoes_status ON locacoes(loc_status);
 CREATE INDEX idx_itens_locacao ON itens(itn_loc_id);
 CREATE INDEX idx_itens_exemplar ON itens(itn_exa_id);
 CREATE INDEX idx_pagamentos_locacao ON pagamentos(pag_loc_id);
+CREATE INDEX idx_usuarios_email ON usuarios(email);
 
 CREATE OR REPLACE FUNCTION fn_atualizar_totais() RETURNS TRIGGER AS $$
 DECLARE

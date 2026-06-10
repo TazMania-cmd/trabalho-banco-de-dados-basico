@@ -183,6 +183,7 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   max-width: 1400px;
   margin: 0 auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: clamp(16px, 2vw, 24px);
@@ -201,8 +202,102 @@ button:disabled { cursor: not-allowed; opacity: 0.4; }
   text-align: center;
 }
 
+.home-page .topbar.has-auth {
+  justify-content: space-between;
+  text-align: left;
+}
+
 .home-page .topbar > div {
   max-width: 760px;
+}
+
+.topbar > .auth-menu {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: auto;
+  max-width: min(100%, 280px);
+  min-height: 44px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(4, 8, 14, 0.5);
+  align-self: center;
+}
+
+.auth-user {
+  max-width: 150px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-logout {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.login-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-shell {
+  width: min(100%, 420px);
+}
+
+.login-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: clamp(24px, 5vw, 36px);
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035));
+  box-shadow: var(--shadow);
+}
+
+.login-heading {
+  margin-bottom: 24px;
+}
+
+.login-heading h1 {
+  font-size: 40px;
+}
+
+.login-heading p {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+}
+
+.login-form {
+  display: grid;
+  gap: 16px;
+}
+
+.password-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.password-toggle {
+  min-height: 46px;
+  padding: 0 14px;
+}
+
+.login-feedback {
+  display: none;
+  margin: 0;
+}
+
+.login-feedback.erro {
+  display: block;
 }
 
 .eyebrow {
@@ -514,6 +609,35 @@ th {
   border-bottom: 2px solid var(--border);
 }
 
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+  font-size: inherit;
+  font-weight: 800;
+  gap: 6px;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.sort-button:hover:not(:disabled),
+.sort-button.active {
+  color: var(--primary);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
 td {
   padding: 16px;
   border-bottom: 1px solid var(--border);
@@ -597,6 +721,50 @@ tbody tr:hover {
 .feedback.erro { background: rgba(255, 77, 77, 0.1); color: var(--danger); }
 .feedback.info { background: rgba(242, 202, 41, 0.1); color: var(--primary); }
 
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(4, 8, 14, 0.72);
+}
+
+.confirm-modal {
+  width: min(100%, 440px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow);
+}
+
+.confirm-modal h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.confirm-modal p {
+  margin: 12px 0 0;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.modal-actions button {
+  min-width: 104px;
+}
+
 /* Relatórios */
 .report-tabs {
   display: flex;
@@ -649,6 +817,10 @@ tbody tr:hover {
     text-align: left;
   }
 
+  .topbar > .auth-menu {
+    margin-left: 0;
+  }
+
   h1 {
     font-size: 44px;
   }
@@ -687,8 +859,13 @@ tbody tr:hover {
 
   .actions-row button,
   .tmdb-actions button,
+  .modal-actions button,
   .report-tabs button {
     flex: 1 1 100%;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
   }
 
   .crud-form {
@@ -703,6 +880,12 @@ tbody tr:hover {
   .topbar > div,
   .topbar p {
     max-width: calc(100vw - 32px);
+  }
+
+  .topbar > .auth-menu {
+    width: 100%;
+    max-width: calc(100vw - 32px);
+    justify-content: space-between;
   }
 
   .topbar p {

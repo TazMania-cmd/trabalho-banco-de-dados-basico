@@ -1,6 +1,14 @@
 const path = require('path');
 const express = require('express');
+const session = require('express-session');
 const { createClient } = require('@supabase/supabase-js');
+const criarAuthRoutes = require('./src/routes/authRoutes');
+const { criarAdminInicial } = require('./src/auth/authService');
+const {
+  exigirAutenticacaoApi,
+  exigirAutenticacaoPagina,
+  redirecionarLoginAutenticado
+} = require('./src/middlewares/authMiddleware');
 
 require('dotenv').config({ path: path.join(__dirname, '.env.local') });
 require('dotenv').config();
@@ -9,6 +17,8 @@ const app = express();
 const port = Number(process.env.PORT) || 3000;
 const publicDir = path.join(__dirname, 'public');
 const valorMultaPorDia = Number(process.env.VALOR_MULTA_DIA) || 2;
+const sessionSecret = process.env.SESSION_SECRET || 'locadora-dev-session-secret';
+const isProduction = process.env.NODE_ENV === 'production';
 const tmdbBaseUrl = process.env.TMDB_BASE_URL || 'https://api.themoviedb.org/3';
 const tmdbImageBaseUrl = process.env.TMDB_IMAGE_BASE_URL || 'https://image.tmdb.org/t/p';
 const tmdbAccessToken = process.env.TMDB_ACCESS_TOKEN || process.env.TMDB_API_READ_ACCESS_TOKEN || process.env.TMDB_BEARER_TOKEN;
@@ -28,6 +38,13 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const supabase = supabaseUrl && supabaseKey
   ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false } })
   : null;
+
+if (isProduction && !process.env.SESSION_SECRET) {
+  console.error('Erro: SESSION_SECRET Ã© obrigatÃ³rio em produÃ§Ã£o.');
+  process.exit(1);
+}
+
+if (isProduction) app.set('trust proxy', 1);
 
 if (!supabase) {
   console.error('Erro: SUPABASE_URL e SUPABASE_ANON_KEY são obrigatórios no arquivo .env.');
@@ -52,7 +69,32 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(publicDir));
+app.use(session({
+  name: 'locadora.sid',
+  secret: sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProduction,
+    maxAge: Number(process.env.SESSION_MAX_AGE_MS) || 2 * 60 * 60 * 1000
+  }
+}));
+
+app.use('/auth', criarAuthRoutes({ supabase }));
+const servirAssetsEstaticos = express.static(publicDir, {
+  index: false,
+  extensions: false,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-store');
+  }
+});
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html')) return next();
+  return servirAssetsEstaticos(req, res, next);
+});
 
 app.use('/api', (req, res, next) => {
   if (!supabase && !req.path.startsWith('/tmdb')) {
@@ -60,6 +102,8 @@ app.use('/api', (req, res, next) => {
   }
   next();
 });
+
+app.use('/api', exigirAutenticacaoApi);
 
 const paginas = [
   'clientes.html',
@@ -289,8 +333,11 @@ async function obterOuCriarCategoria(nomeCategoria) {
   return data;
 }
 
-app.get('/', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));
-paginas.forEach(file => app.get(`/${file}`, (req, res) => res.sendFile(path.join(publicDir, file))));
+app.get('/login.html', redirecionarLoginAutenticado(publicDir));
+app.get('/login', (req, res) => res.redirect('/login.html'));
+app.get('/', exigirAutenticacaoPagina(publicDir, 'index.html'));
+app.get('/index.html', exigirAutenticacaoPagina(publicDir, 'index.html'));
+paginas.forEach(file => app.get(`/${file}`, exigirAutenticacaoPagina(publicDir, file)));
 
 app.get('/api/status', async (req, res) => {
   const { error } = await supabase.from('clientes').select('cli_id').limit(1);
@@ -986,4 +1033,12 @@ app.use('/api', (req, res) => {
   res.status(404).json({ erro: 'Rota da API não encontrada.' });
 });
 
-app.listen(port, () => console.log(`Servidor: http://localhost:${port}`));
+async function iniciarServidor() {
+  await criarAdminInicial(supabase);
+  app.listen(port, () => console.log(`Servidor: http://localhost:${port}`));
+}
+
+iniciarServidor().catch(error => {
+  console.error('Falha ao iniciar o servidor.', error);
+  process.exit(1);
+});

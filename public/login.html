@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Sistema Locadora</title>
+  <link rel="stylesheet" href="_CSS/styles.css">
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-card" aria-labelledby="login-title">
+      <div class="login-heading">
+        <span class="eyebrow">Sistema Locadora</span>
+        <h1 id="login-title">Entrar</h1>
+        <p>Acesse o painel administrativo da locadora.</p>
+      </div>
+
+      <form id="login-form" class="login-form" novalidate>
+        <label class="field" for="email">
+          E-mail
+          <input id="email" name="email" type="email" autocomplete="username" required>
+        </label>
+
+        <label class="field" for="senha">
+          Senha
+          <span class="password-row">
+            <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+            <button id="toggle-password" class="secondary-button password-toggle" type="button" aria-pressed="false">Mostrar</button>
+          </span>
+        </label>
+
+        <p id="login-feedback" class="feedback login-feedback" aria-live="polite"></p>
+        <button id="login-submit" type="submit">Entrar</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="_JavaScript/login.js"></script>
+</body>
+</html>

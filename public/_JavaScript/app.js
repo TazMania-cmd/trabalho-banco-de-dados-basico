@@ -2,6 +2,10 @@ const estado = {
   entidadeAtual: document.body.dataset.entidade || null,
   registroSelecionado: null,
   dados: [],
+  ordenacao: {
+    coluna: null,
+    direcao: 'asc'
+  },
   cache: {
     clientes: [],
     categorias: [],
@@ -181,6 +185,59 @@ const tmdbResultados = document.querySelector('#tmdb-resultados');
 const menuItens = document.querySelectorAll('.menu-item');
 const formArea = document.querySelector('#form-area');
 const reportTabs = document.querySelectorAll('[data-relatorio]');
+const topbar = document.querySelector('.topbar');
+
+function redirecionarLogin() {
+  window.location.href = `/login.html?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+}
+
+function renderizarUsuario(usuario) {
+  if (!topbar || !usuario || document.querySelector('.auth-menu')) return;
+
+  topbar.classList.add('has-auth');
+
+  const authMenu = document.createElement('div');
+  authMenu.className = 'auth-menu';
+
+  const nome = document.createElement('span');
+  nome.className = 'auth-user';
+  nome.textContent = usuario.nome;
+
+  const sair = document.createElement('button');
+  sair.type = 'button';
+  sair.className = 'secondary-button auth-logout';
+  sair.textContent = 'Sair';
+  sair.addEventListener('click', async () => {
+    sair.disabled = true;
+    try {
+      await fetch('/auth/logout', { method: 'POST' });
+    } finally {
+      window.location.href = '/login.html';
+    }
+  });
+
+  authMenu.append(nome, sair);
+  topbar.appendChild(authMenu);
+}
+
+async function verificarSessaoAtual() {
+  try {
+    const resposta = await fetch('/auth/session');
+    if (resposta.status === 401) {
+      redirecionarLogin();
+      return null;
+    }
+
+    if (!resposta.ok) throw new Error('Sessão indisponível.');
+    const dados = await resposta.json();
+    renderizarUsuario(dados.usuario);
+    return dados.usuario;
+  } catch (erro) {
+    console.error('Falha ao verificar sessão:', erro);
+    redirecionarLogin();
+    return null;
+  }
+}
 
 function formatarCampo(campo) {
   const nomes = {
@@ -263,6 +320,76 @@ function formatarValor(valor, campo = '') {
   return valor;
 }
 
+function valorOrdenavel(valor, campo = '') {
+  if (valor === null || valor === undefined || valor === '') {
+    return { tipo: 'vazio', valor: null };
+  }
+
+  if (campo === 'FIL_POSTER') {
+    return { tipo: 'texto', valor: String(valor) };
+  }
+
+  if (typeof valor === 'number') {
+    return { tipo: 'numero', valor };
+  }
+
+  const texto = String(valor).trim();
+  const campoNumerico = /(ID|QTD|DIAS|ANO|DURACAO|VALOR|SALDO|MULTA|PAGO)/i.test(campo);
+  const numero = Number(texto.replace(/\./g, '').replace(',', '.'));
+  if (campoNumerico && Number.isFinite(numero)) {
+    return { tipo: 'numero', valor: numero };
+  }
+
+  const dataIso = /^\d{4}-\d{2}-\d{2}(T|\s|$)/.test(texto);
+  const dataBr = /^(\d{2})\/(\d{2})\/(\d{4})(?:,\s*(\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(texto);
+  if (dataIso) {
+    const timestamp = new Date(texto).getTime();
+    if (Number.isFinite(timestamp)) return { tipo: 'data', valor: timestamp };
+  }
+  if (dataBr) {
+    const [, dia, mes, ano, hora = '00', minuto = '00', segundo = '00'] = dataBr;
+    const timestamp = new Date(`${ano}-${mes}-${dia}T${hora}:${minuto}:${segundo}`).getTime();
+    if (Number.isFinite(timestamp)) return { tipo: 'data', valor: timestamp };
+  }
+
+  return { tipo: 'texto', valor: texto.toLocaleLowerCase('pt-BR') };
+}
+
+function compararRegistros(a, b, coluna) {
+  const valorA = valorOrdenavel(a[coluna], coluna);
+  const valorB = valorOrdenavel(b[coluna], coluna);
+
+  if (valorA.tipo === 'vazio' && valorB.tipo === 'vazio') return 0;
+  if (valorA.tipo === 'vazio') return 1;
+  if (valorB.tipo === 'vazio') return -1;
+
+  if (valorA.tipo === 'texto' || valorB.tipo === 'texto') {
+    return String(valorA.valor).localeCompare(String(valorB.valor), 'pt-BR', {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  }
+
+  return valorA.valor - valorB.valor;
+}
+
+function ordenarDados(dados) {
+  const { coluna, direcao } = estado.ordenacao;
+  if (!coluna) return [...dados];
+
+  const fator = direcao === 'desc' ? -1 : 1;
+  return [...dados].sort((a, b) => compararRegistros(a, b, coluna) * fator);
+}
+
+function alternarOrdenacao(coluna) {
+  const mesmaColuna = estado.ordenacao.coluna === coluna;
+  estado.ordenacao = {
+    coluna,
+    direcao: mesmaColuna && estado.ordenacao.direcao === 'asc' ? 'desc' : 'asc'
+  };
+  aplicarFiltro();
+}
+
 function renderizarCelula(td, valor, coluna) {
   if (coluna === 'FIL_POSTER') {
     td.className = 'poster-cell';
@@ -293,6 +420,65 @@ function exibirFeedback(texto, tipo = 'ok') {
   feedback.className = `feedback ${tipo}`;
 }
 
+function confirmarAcao({ titulo, mensagem, textoConfirmar = 'Confirmar', perigoso = false }) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.setAttribute('role', 'presentation');
+
+    const modal = document.createElement('section');
+    modal.className = 'confirm-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'confirm-title');
+    modal.setAttribute('aria-describedby', 'confirm-message');
+
+    const heading = document.createElement('h2');
+    heading.id = 'confirm-title';
+    heading.textContent = titulo;
+
+    const texto = document.createElement('p');
+    texto.id = 'confirm-message';
+    texto.textContent = mensagem;
+
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions';
+
+    const cancelar = document.createElement('button');
+    cancelar.type = 'button';
+    cancelar.className = 'secondary-button';
+    cancelar.textContent = 'Cancelar';
+
+    const confirmar = document.createElement('button');
+    confirmar.type = 'button';
+    confirmar.className = perigoso ? 'danger-button' : '';
+    confirmar.textContent = textoConfirmar;
+
+    actions.append(cancelar, confirmar);
+    modal.append(heading, texto, actions);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    confirmar.focus();
+
+    const fechar = resultado => {
+      document.removeEventListener('keydown', tratarTecla);
+      overlay.remove();
+      resolve(resultado);
+    };
+
+    const tratarTecla = evento => {
+      if (evento.key === 'Escape') fechar(false);
+    };
+
+    confirmar.addEventListener('click', () => fechar(true));
+    cancelar.addEventListener('click', () => fechar(false));
+    overlay.addEventListener('click', evento => {
+      if (evento.target === overlay) fechar(false);
+    });
+    document.addEventListener('keydown', tratarTecla);
+  });
+}
+
 async function fetchJson(url, opcoes = {}) {
   const resposta = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
@@ -301,6 +487,7 @@ async function fetchJson(url, opcoes = {}) {
   const dados = await resposta.json();
 
   if (!resposta.ok) {
+    if (resposta.status === 401) redirecionarLogin();
     throw new Error(dados.erro || dados.detalhe || 'Erro na operação.');
   }
 
@@ -436,7 +623,11 @@ async function devolverLocacao(registro) {
     return;
   }
 
-  const confirmar = confirm(`Registrar devolução da locação #${registro.LOC_ID}?`);
+  const confirmar = await confirmarAcao({
+    titulo: 'Registrar devolução',
+    mensagem: `Registrar devolução da locação #${registro.LOC_ID}?`,
+    textoConfirmar: 'Devolver'
+  });
   if (!confirmar) return;
 
   try {
@@ -491,21 +682,34 @@ function imprimirRecibo() {
 
 function renderizarTabela(dados) {
   const config = configuracoes[estado.entidadeAtual];
+  const dadosOrdenados = ordenarDados(dados);
   tabela.innerHTML = '';
   contador.textContent = `${dados.length} registro${dados.length === 1 ? '' : 's'}`;
 
-  if (!dados.length) {
+  if (!dadosOrdenados.length) {
     tabela.innerHTML = '<tbody><tr><td>Nenhum registro encontrado.</td></tr></tbody>';
     return;
   }
 
-  const colunas = Object.keys(dados[0]);
+  const colunas = Object.keys(dadosOrdenados[0]);
+  contador.textContent = `${dados.length} registro${dados.length === 1 ? '' : 's'} · clique nos títulos para ordenar`;
   const thead = document.createElement('thead');
   const trHead = document.createElement('tr');
 
   colunas.forEach(coluna => {
     const th = document.createElement('th');
-    th.textContent = formatarCampo(coluna);
+    const ativo = estado.ordenacao.coluna === coluna;
+    const botaoOrdenar = document.createElement('button');
+    botaoOrdenar.type = 'button';
+    botaoOrdenar.className = `sort-button${ativo ? ' active' : ''}`;
+    botaoOrdenar.textContent = `${formatarCampo(coluna)} ${ativo ? (estado.ordenacao.direcao === 'asc' ? '↑' : '↓') : '↕'}`;
+    botaoOrdenar.setAttribute('aria-label', `Ordenar por ${formatarCampo(coluna)}`);
+    botaoOrdenar.title = ativo && estado.ordenacao.direcao === 'asc'
+      ? 'Ordenar em ordem decrescente'
+      : 'Ordenar em ordem crescente';
+    botaoOrdenar.addEventListener('click', () => alternarOrdenacao(coluna));
+    th.setAttribute('aria-sort', ativo ? (estado.ordenacao.direcao === 'asc' ? 'ascending' : 'descending') : 'none');
+    th.appendChild(botaoOrdenar);
     trHead.appendChild(th);
   });
 
@@ -519,7 +723,7 @@ function renderizarTabela(dados) {
   tabela.appendChild(thead);
 
   const tbody = document.createElement('tbody');
-  dados.forEach(registro => {
+  dadosOrdenados.forEach(registro => {
     const tr = document.createElement('tr');
     colunas.forEach(coluna => {
       const td = document.createElement('td');
@@ -757,7 +961,12 @@ async function excluirRegistro() {
   if (!estado.registroSelecionado || config.somenteLeitura) return;
 
   const id = estado.registroSelecionado[config.id];
-  const confirmar = confirm(`Deseja realmente excluir o registro #${id}?`);
+  const confirmar = await confirmarAcao({
+    titulo: 'Excluir registro',
+    mensagem: `Deseja realmente excluir o registro #${id}?`,
+    textoConfirmar: 'Excluir',
+    perigoso: true
+  });
   if (!confirmar) return;
 
   try {
@@ -774,6 +983,7 @@ async function excluirRegistro() {
 function trocarEntidade(entidade) {
   estado.entidadeAtual = entidade;
   estado.registroSelecionado = null;
+  estado.ordenacao = { coluna: null, direcao: 'asc' };
   busca.value = '';
 
   menuItens.forEach(item => {
@@ -805,4 +1015,6 @@ reportTabs.forEach(botao => {
   });
 });
 
-if (estado.entidadeAtual) trocarEntidade(estado.entidadeAtual);
+verificarSessaoAtual().then(usuario => {
+  if (usuario && estado.entidadeAtual) trocarEntidade(estado.entidadeAtual);
+});

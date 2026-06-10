@@ -135,6 +135,26 @@ Acesse:
 http://localhost:3000
 ```
 
+## Autenticacao administrativa
+
+Para habilitar a autenticacao em um banco que ja existe, execute no SQL Editor do Supabase:
+
+```text
+migrations/2026-06-10_auth_usuarios.sql
+```
+
+Depois configure o `.env.local` com:
+
+```env
+SESSION_SECRET=uma-string-longa-e-aleatoria
+SESSION_MAX_AGE_MS=7200000
+ADMIN_NAME=Administrador
+ADMIN_EMAIL=admin@locadora.com
+ADMIN_PASSWORD=troque-esta-senha
+```
+
+O backend cria o administrador inicial apenas se `ADMIN_EMAIL` ainda nao existir na tabela `usuarios`. O login usa `POST /auth/login`, logout usa `POST /auth/logout` e a sessao atual usa `GET /auth/session`. As senhas sao gravadas somente como hash bcrypt, e as paginas internas e rotas `/api` exigem sessao.
+
 ## Funcionalidades da tela
 
 - Cadastro de clientes
