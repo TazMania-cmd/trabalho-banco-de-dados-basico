@@ -210,7 +210,10 @@ function renderizarUsuario(usuario) {
   sair.addEventListener('click', async () => {
     sair.disabled = true;
     try {
-      await fetch('/auth/logout', { method: 'POST' });
+      await fetch('/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
     } finally {
       window.location.href = '/login.html';
     }
@@ -222,7 +225,9 @@ function renderizarUsuario(usuario) {
 
 async function verificarSessaoAtual() {
   try {
-    const resposta = await fetch('/auth/session');
+    const resposta = await fetch('/auth/session', {
+      credentials: 'include'
+    });
     if (resposta.status === 401) {
       redirecionarLogin();
       return null;

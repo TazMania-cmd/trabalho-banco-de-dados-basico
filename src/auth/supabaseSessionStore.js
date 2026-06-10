@@ -1,5 +1,14 @@
 const session = require('express-session');
 
+function erroSeguro(error) {
+  return {
+    name: error?.name,
+    message: error?.message,
+    code: error?.code,
+    details: error?.details
+  };
+}
+
 class SupabaseSessionStore extends session.Store {
   constructor({ supabase, tableName = 'sessoes' }) {
     super();
@@ -15,7 +24,7 @@ class SupabaseSessionStore extends session.Store {
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) {
-          console.error('Falha ao ler sessão no Supabase:', error);
+          console.error('Falha ao ler sessao no Supabase:', erroSeguro(error));
           return callback(null, null);
         }
         if (!data) return callback(null, null);
@@ -28,7 +37,7 @@ class SupabaseSessionStore extends session.Store {
         callback(null, data.sessao);
       })
       .catch(error => {
-        console.error('Falha ao ler sessão no Supabase:', error);
+        console.error('Falha ao ler sessao no Supabase:', erroSeguro(error));
         callback(null, null);
       });
   }
@@ -46,11 +55,11 @@ class SupabaseSessionStore extends session.Store {
         updated_at: new Date().toISOString()
       })
       .then(({ error }) => {
-        if (error) console.error('Falha ao gravar sessão no Supabase:', error);
+        if (error) console.error('Falha ao gravar sessao no Supabase:', erroSeguro(error));
         callback(error || null);
       })
       .catch(error => {
-        console.error('Falha ao gravar sessão no Supabase:', error);
+        console.error('Falha ao gravar sessao no Supabase:', erroSeguro(error));
         callback(error);
       });
   }
@@ -61,11 +70,11 @@ class SupabaseSessionStore extends session.Store {
       .delete()
       .eq('id', sid)
       .then(({ error }) => {
-        if (error) console.error('Falha ao remover sessão no Supabase:', error);
+        if (error) console.error('Falha ao remover sessao no Supabase:', erroSeguro(error));
         callback(error || null);
       })
       .catch(error => {
-        console.error('Falha ao remover sessão no Supabase:', error);
+        console.error('Falha ao remover sessao no Supabase:', erroSeguro(error));
         callback(error);
       });
   }

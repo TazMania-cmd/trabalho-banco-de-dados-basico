@@ -23,7 +23,9 @@ function limparErro() {
 
 async function verificarSessao() {
   try {
-    const resposta = await fetch('/auth/session');
+    const resposta = await fetch('/auth/session', {
+      credentials: 'include'
+    });
     if (resposta.ok) window.location.replace(proximaUrl());
   } catch {
     // Tela de login continua disponível mesmo se a sessão não puder ser consultada.
@@ -56,6 +58,7 @@ async function enviarLogin(evento) {
   try {
     const resposta = await fetch('/auth/login', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, senha })
     });

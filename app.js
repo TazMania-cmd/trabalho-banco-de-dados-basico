@@ -80,6 +80,21 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: '1mb' }));
+app.use((error, req, res, next) => {
+  if (error?.type === 'entity.parse.failed') {
+    if (req.path === '/auth/login' || req.path === '/api/auth/login') {
+      console.warn('[auth/login]', {
+        etapa: '2.body_json_invalido',
+        method: req.method,
+        path: req.originalUrl,
+        message: error.message
+      });
+    }
+    return res.status(400).json({ erro: 'Corpo JSON invalido.' });
+  }
+
+  return next(error);
+});
 try {
   app.use(session({
     name: 'locadora.sid',
