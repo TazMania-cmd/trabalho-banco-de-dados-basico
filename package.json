@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "build": "node --check app.js && node --check server.js && node --check api/index.js && node --check src/auth/authService.js && node --check src/auth/supabaseSessionStore.js && node --check src/routes/authRoutes.js && node --check src/middlewares/authMiddleware.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",

@@ -14,7 +14,10 @@ class SupabaseSessionStore extends session.Store {
       .eq('id', sid)
       .maybeSingle()
       .then(({ data, error }) => {
-        if (error) return callback(error);
+        if (error) {
+          console.error('Falha ao ler sessão no Supabase:', error);
+          return callback(null, null);
+        }
         if (!data) return callback(null, null);
 
         if (data.expira_em && new Date(data.expira_em).getTime() <= Date.now()) {
@@ -24,7 +27,10 @@ class SupabaseSessionStore extends session.Store {
 
         callback(null, data.sessao);
       })
-      .catch(error => callback(error));
+      .catch(error => {
+        console.error('Falha ao ler sessão no Supabase:', error);
+        callback(null, null);
+      });
   }
 
   set(sid, sessao, callback = () => {}) {
@@ -39,8 +45,14 @@ class SupabaseSessionStore extends session.Store {
         expira_em: expiraEm,
         updated_at: new Date().toISOString()
       })
-      .then(({ error }) => callback(error || null))
-      .catch(error => callback(error));
+      .then(({ error }) => {
+        if (error) console.error('Falha ao gravar sessão no Supabase:', error);
+        callback(error || null);
+      })
+      .catch(error => {
+        console.error('Falha ao gravar sessão no Supabase:', error);
+        callback(error);
+      });
   }
 
   destroy(sid, callback = () => {}) {
@@ -48,8 +60,14 @@ class SupabaseSessionStore extends session.Store {
       .from(this.tableName)
       .delete()
       .eq('id', sid)
-      .then(({ error }) => callback(error || null))
-      .catch(error => callback(error));
+      .then(({ error }) => {
+        if (error) console.error('Falha ao remover sessão no Supabase:', error);
+        callback(error || null);
+      })
+      .catch(error => {
+        console.error('Falha ao remover sessão no Supabase:', error);
+        callback(error);
+      });
   }
 
   touch(sid, sessao, callback = () => {}) {
